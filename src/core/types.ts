@@ -1,5 +1,6 @@
 import type { Fields } from "../schema/dsl.mjs";
 import type { Label } from "./i18n";
+import type { PanelLanguage } from "./languages";
 import type { MediaConfig } from "./media";
 
 export type { Label };
@@ -91,20 +92,16 @@ export type ZayConfig = ZaySchema & {
   schema?: ZaySchema;
   /** Image uploads (optional): s3Media(...), repoMedia() or your own MediaAdapter. */
   media?: MediaConfig;
-  /** Language of the panel UI (default "en"; bundled: "en", "tr"). */
-  language?: string;
   /**
-   * Let the panel start in the visitor's browser language when it is one of the
-   * available languages (bundled or in `translations`). A language picked in the
-   * panel always wins. Default false.
+   * Language of the panel UI. Only languages shipped with the package are available
+   * (see PANEL_LANGUAGES); default "en". Visitors can switch with the picker when more than one exists.
+   */
+  language?: PanelLanguage;
+  /**
+   * Start in the browser's language when the package ships it (a language picked in the
+   * panel always wins). Default false.
    */
   autoDetectLanguage?: boolean;
-  /**
-   * Your own panel strings, keyed by language code. Add a language the package
-   * does not ship yet, or reword any string; missing keys fall back to English.
-   * Keys are those of `src/ui/locales/en.ts`.
-   */
-  translations?: Record<string, Record<string, string>>;
   /** Local file root (default: process.cwd()). */
   root?: string;
 };

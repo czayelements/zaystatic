@@ -33,6 +33,7 @@ import { githubStore } from "./store-github";
 import { PullRequests, branchFor, draftStore, workflowOf } from "./workflow";
 import type { Draft, DraftStore, Target } from "./workflow";
 import { localizeFile, localizeSchema } from "./i18n";
+import { PANEL_LANGUAGES, isPanelLanguage } from "./languages";
 import { HttpError, resolveConfig } from "./types";
 import type { Store, ZayConfig } from "./types";
 
@@ -126,9 +127,9 @@ export function createHandler(input: ZayConfig) {
         repo: config.repo ? `${config.repo.owner}/${config.repo.name}` : null,
         branch: config.repo?.branch ?? "main",
         name: config.name ?? "zay-static",
-        language: config.language ?? "en",
-        /* Everything the panel needs to switch language without another round trip. */
-        translations: config.translations ?? {},
+        /* The package decides which languages exist; the project only picks the default among them. */
+        language: isPanelLanguage(config.language) ? config.language : "en",
+        languages: PANEL_LANGUAGES,
         autoDetectLanguage: config.autoDetectLanguage === true,
         apiPath: api,
         basePath: config.basePath,
@@ -238,7 +239,8 @@ export function createHandler(input: ZayConfig) {
     }
 
     /* Panel language for label resolution: `?lang=de`, falling back to the configured language. */
-    const lang = (url.searchParams.get("lang") ?? config.language ?? "en").slice(0, 16);
+    const asked = url.searchParams.get("lang") ?? config.language;
+    const lang = isPanelLanguage(asked) ? asked : "en";
 
     if (parts[0] === "schema" && method === "GET") {
       return json({

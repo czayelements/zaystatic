@@ -6,6 +6,8 @@ import { createHandler } from "../src/core/api";
 import { localizeSchema, pickLabel } from "../src/core/i18n";
 import { block, blocks, select, str } from "../src/schema/dsl.mjs";
 import { defineCollection, defineConfig, resolveConfig } from "../src/core/types";
+import { PANEL_LANGUAGES } from "../src/core/languages";
+import { dictionaries } from "../src/ui/i18n";
 import { availableLanguages, initialLanguage, languageName } from "../src/ui/language";
 import { tmp } from "./helpers";
 
@@ -50,14 +52,28 @@ test("localizeSchema resolves every label kind to the panel language", () => {
   assert.equal(en.collections.posts.fields.title.label, "Title");
 });
 
-test("GET /schema?lang= and /session carry what the panel needs to switch language", async () => {
+test("GET /schema?lang= resolves labels; the project cannot add or override panel languages", async () => {
   const root = await tmp();
-  const h = createHandler({ ...schemaConfig(), root, language: "en", autoDetectLanguage: true, translations: { de: { save: "Speichern" } } });
+  const h = createHandler({ ...schemaConfig(), root, language: "en", autoDetectLanguage: true, translations: { de: { save: "Hacked" } } } as never);
   const get = async (p: string) => (await h(new Request(`http://localhost/api/zay${p}`))).json() as Promise<any>;
-  assert.equal((await get("/schema?lang=de")).collections.posts.label, "Beiträge");
-  assert.equal((await get("/schema")).collections.posts.label, "Posts"); // configured language
+  assert.equal((await get("/schema?lang=de")).collections.posts.label, "Posts"); // "de" is not a package language: English
+  assert.equal((await get("/schema")).collections.posts.label, "Posts");
   const s = await get("/session");
-  assert.deepEqual([s.language, s.autoDetectLanguage, s.translations.de.save], ["en", true, "Speichern"]);
+  assert.deepEqual([s.language, s.languages, s.autoDetectLanguage, s.translations], ["en", ["en", "tr"], true, undefined]);
+  const odd = createHandler({ ...schemaConfig(), root, language: "xx" } as never);
+  assert.equal((await (await odd(new Request("http://localhost/api/zay/session"))).json()).language, "en");
+});
+
+test("with a package language available, ?lang= relabels the schema (simulated second language)", async () => {
+  const langs = PANEL_LANGUAGES as unknown as string[];
+  langs.push("de");
+  try {
+    const h = createHandler({ ...schemaConfig(), root: await tmp(), language: "en" });
+    const res = await (await h(new Request("http://localhost/api/zay/schema?lang=de"))).json();
+    assert.equal(res.collections.posts.label, "Beiträge");
+  } finally {
+    langs.pop();
+  }
 });
 
 /* ── The panel's own language choice ───────────────────────────── */
@@ -71,27 +87,34 @@ const setEnv = (languages: string[]) => {
 afterEach(() => {
   for (const k of Object.keys(store)) delete store[k];
   delete g.window;
+  delete dictionaries.de;
+  delete dictionaries["pt-BR"];
 });
 
-const session = { language: "en", translations: { de: {}, "pt-BR": {} }, autoDetectLanguage: false };
-
-test("available languages: bundled + the project's + the default", () => {
-  assert.deepEqual(availableLanguages(session), ["en", "de", "pt-BR"]);
-  assert.deepEqual(availableLanguages({ language: "fr", translations: {} }), ["en", "fr"]);
+test("available languages are exactly the package's", () => {
+  assert.deepEqual(availableLanguages(), ["en", "tr"]);
 });
 
-test("initial language: stored choice > browser (opt-in) > configured > English", () => {
+test("initial language: stored choice > browser (opt-in) > configured > English, package languages only", () => {
+  dictionaries.de = {} as never;
+  dictionaries["pt-BR"] = {} as never;
   setEnv(["de-AT", "en"]);
-  assert.equal(initialLanguage(session), "en"); // browser ignored unless opted in
-  assert.equal(initialLanguage({ ...session, autoDetectLanguage: true }), "de"); // de-AT -> de
+  const base = { language: "en", autoDetectLanguage: false };
+  assert.equal(initialLanguage(base), "en"); // browser ignored unless opted in
+  assert.equal(initialLanguage({ ...base, autoDetectLanguage: true }), "de"); // de-AT -> de
   store["zay.language"] = "pt-BR";
-  assert.equal(initialLanguage({ ...session, autoDetectLanguage: true }), "pt-BR"); // an explicit choice wins
-  store["zay.language"] = "xx"; // no longer available
-  assert.equal(initialLanguage(session), "en");
-  assert.equal(initialLanguage({ ...session, language: "de" }), "de");
+  assert.equal(initialLanguage({ ...base, autoDetectLanguage: true }), "pt-BR"); // an explicit choice wins
+  store["zay.language"] = "xx"; // not a package language
+  assert.equal(initialLanguage(base), "en");
+  assert.equal(initialLanguage({ ...base, language: "de" }), "de");
+  assert.equal(initialLanguage({ ...base, language: "xx" }), "en"); // unknown default
+  delete dictionaries.de;
+  setEnv(["de"]);
+  assert.equal(initialLanguage({ ...base, autoDetectLanguage: true }), "en"); // browser language the package lacks
 });
 
 test("language names come from the runtime in the language itself", () => {
   assert.equal(languageName("de"), "Deutsch");
   assert.equal(languageName("en"), "English");
+  assert.equal(languageName("tr"), "Türkçe");
 });

@@ -77,7 +77,7 @@ export function ZayApp({ apiPath, editors = NO_EDITORS }: ZayAppProps) {
 }
 
 function SignIn({ session, lang, apiPath }: { session: SessionInfo; lang: string; apiPath: string }) {
-  const t = resolveMessages(lang, session.translations?.[lang]);
+  const t = resolveMessages(lang);
   const error = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("error") : null;
   return (
     <div className="zs-root zs-center">

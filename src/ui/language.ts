@@ -3,9 +3,9 @@ import type { SessionInfo } from "./types";
 
 const KEY = "zay.language";
 
-/** Languages the panel can show: the bundled ones, those the project translated, and the configured default. */
-export function availableLanguages(session: Pick<SessionInfo, "language" | "translations">): string[] {
-  return [...new Set([...Object.keys(dictionaries), ...Object.keys(session.translations ?? {}), session.language])];
+/** Languages the panel can show: exactly the ones the package ships. */
+export function availableLanguages(): string[] {
+  return Object.keys(dictionaries);
 }
 
 const read = () => {
@@ -26,10 +26,10 @@ export function storeLanguage(code: string) {
 
 /**
  * Which language to start in: the one the user picked before, else (opt-in) the
- * browser's, else the project's configured language, else English.
+ * browser's, else the project's configured default, else English. Only package languages qualify.
  */
-export function initialLanguage(session: Pick<SessionInfo, "language" | "translations" | "autoDetectLanguage">): string {
-  const available = availableLanguages(session);
+export function initialLanguage(session: Pick<SessionInfo, "language" | "autoDetectLanguage">): string {
+  const available = availableLanguages();
   const stored = read();
   if (stored && available.includes(stored)) return stored;
   if (session.autoDetectLanguage && typeof navigator !== "undefined") {

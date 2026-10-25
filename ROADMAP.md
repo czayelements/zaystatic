@@ -116,7 +116,7 @@ pull-request workflow** (`workflow: "pull-request"`): draft branch + PR per entr
 editors (plug-ins). Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
 into automatic Collections / Singletons / File sets sections; kind icons on every item.
 
-**Panel language management**: English is the only bundled language; language picker in the sidebar (choice remembered), opt-in browser-language detection, project `translations`, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); `language` + `translations` in the settings add any other language.
+**Panel language management**: the package owns the panel languages (`en`, `tr`); language picker in the sidebar (choice remembered), opt-in browser-language detection, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); projects cannot add or override panel strings.
 
 **Runtime**: `(Request) => Response` handler; adapters for Next.js and Node/Express; recipes for Hono, SvelteKit, Astro, Workers.
 
@@ -194,16 +194,11 @@ Ordered by value. Each item says where to start and what "done" means.
 
 ## Panel languages
 
-The panel UI is translated through dictionaries in `src/ui/locales/` (see `ui/language.ts` for choosing, `core/i18n.ts` for schema labels) (`en` is the only bundled language, the source and the fallback for any missing key). A project picks the language in its settings:
+The panel's wording belongs to the package. Projects choose among the shipped languages (`language`, plus the sidebar picker and
+opt-in `autoDetectLanguage`); they cannot add languages or override strings. Shipped: **English** (`en`, the source and the fallback
+for any missing key) and **Turkish** (`tr`). Schema labels are the project's own and may be per-language maps.
 
-```ts
-defineConfig({
-  language: "de",
-  // Add a language the package does not ship yet, or reword any string. Missing keys fall back to English.
-  translations: { de: { save: "Speichern", cancel: "Abbrechen" /* … */ } },
-  // …
-});
-```
-
-Contributing a language to the package: copy `locales/en.ts` to `locales/<code>.ts`, translate the values (the type checker flags missing keys), register it in `i18n.ts`. A test keeps every bundled language in sync with English.
-Planned bundled languages: de, es, fr, pt-BR, ja, zh-CN, ar (needs right-to-left styles). Today a project adds its own through `translations`.
+Contributing a language to the package: copy `src/ui/locales/en.ts` to `locales/<code>.ts` and translate the values (the type
+checker flags missing keys), register it in `src/ui/i18n.ts` **and** in `src/core/languages.ts` (`PANEL_LANGUAGES`). Tests keep
+both lists, and every dictionary, in sync with English.
+Planned: de, es, fr, pt-BR, ja, zh-CN, ar (needs right-to-left styles).

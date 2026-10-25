@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
+import { PANEL_LANGUAGES } from "../src/core/languages";
 import { dictionaries, resolveMessages } from "../src/ui/i18n";
 
-test("the package ships English only (more languages arrive through locales/ or project `translations`)", () => {
-  assert.deepEqual(Object.keys(dictionaries), ["en"]);
+test("the package decides the panel languages: the dictionaries and PANEL_LANGUAGES are the same list", () => {
+  assert.deepEqual(Object.keys(dictionaries).sort(), [...PANEL_LANGUAGES].sort());
+  assert.deepEqual([...PANEL_LANGUAGES], ["en", "tr"]);
 });
 
 test("every bundled language defines every key of the English source", () => {
@@ -14,11 +16,19 @@ test("every bundled language defines every key of the English source", () => {
   }
 });
 
-test("English is the default; missing keys fall back; host overrides win", () => {
+test("English is the default; unknown languages and missing keys fall back to it", () => {
   assert.equal(resolveMessages(undefined).save, "Save");
-  assert.equal(resolveMessages("xx").save, "Save"); // unknown language
-  assert.equal(resolveMessages("xx", { save: "Speichern" }).save, "Speichern"); // a language the package does not ship
-  assert.equal(resolveMessages("xx", { save: "Speichern" }).cancel, "Cancel"); // partial: rest is English
-  assert.equal(resolveMessages("de", { save: "Speichern" }).save, "Speichern");
-  assert.equal(resolveMessages("en", { save: "Store" }).save, "Store"); // overrides apply to English too
+  assert.equal(resolveMessages("xx").save, "Save");
+  dictionaries.de = { save: "Speichern" } as never; // a future, partial language
+  try {
+    assert.equal(resolveMessages("de").save, "Speichern");
+    assert.equal(resolveMessages("de").cancel, "Cancel");
+  } finally {
+    delete dictionaries.de;
+  }
+});
+
+test("Turkish is a first-class bundled language", () => {
+  assert.equal(resolveMessages("tr").save, "Kaydet");
+  assert.equal(resolveMessages("tr").cancel, "Vazgeç");
 });

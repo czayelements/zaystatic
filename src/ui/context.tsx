@@ -71,8 +71,8 @@ export function ZayProvider({
   children: React.ReactNode;
 }) {
   const basePath = session.basePath.replace(/\/$/, "");
-  const t = React.useMemo(() => resolveMessages(lang, session.translations?.[lang]), [lang, session.translations]);
-  const languages = React.useMemo(() => availableLanguages(session), [session]);
+  const t = React.useMemo(() => resolveMessages(lang), [lang]);
+  const languages = React.useMemo(() => availableLanguages(), []);
   const [path, setPath] = React.useState(() => strip(window.location.pathname, basePath));
   const guard = React.useRef<(() => boolean) | null>(null);
   const [toasts, setToasts] = React.useState<Toast[]>([]);

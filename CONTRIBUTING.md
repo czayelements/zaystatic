@@ -20,7 +20,8 @@ pnpm test && pnpm typecheck && pnpm build
 - **No dependencies without a reason.** The S3 signer is hand-written to avoid the AWS SDK; prefer
   that spirit.
 - **English only** in code, comments, errors and docs. The panel UI is translated through
-  `src/ui/locales/<code>.ts` (copy `en.ts`, translate, register in `src/ui/i18n.ts`).
+  `src/ui/locales/<code>.ts` (copy `en.ts`, translate, register in `src/ui/i18n.ts` and `src/core/languages.ts`). Panel wording is
+  owned by the package: no per-project overrides.
 - **Accessibility and small screens** matter: the panel must stay usable on a phone.
 
 ## Reporting security issues

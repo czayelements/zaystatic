@@ -260,32 +260,26 @@ Rules are checked by the same function (`validateDoc`) on the server and in the 
 
 ## Panel language
 
-The panel speaks **English** by default (the only language bundled for now) and is built on i18n so languages can be added
-without touching the rest of the code. How it works:
+The panel's own wording (buttons, messages, empty states) is **owned by the package**: it ships a fixed set of languages
+(currently **English** and **Turkish**), and a project cannot add languages or override strings. That keeps the panel
+consistent for every editor and every install; new languages arrive through package updates.
 
-- **Choosing.** `language` in the settings is the default (`"en"` if omitted). A **language picker** appears in the sidebar
-  whenever more than one language is available; the visitor's choice is remembered in the browser and wins over the default.
-  With `autoDetectLanguage: true` the panel starts in the browser's language when it is available (an explicit choice still wins).
-- **Adding a language to your project**, without waiting for a release: give the strings in `translations`. Keys are those of
-  [`src/ui/locales/en.ts`](src/ui/locales/en.ts); anything you leave out falls back to English.
-- **Labels in your schema** (collection and group names, field labels and hints, option labels, block names, validation messages)
-  may be a plain string or a map per language. The server resolves them to the language the panel is in, so switching language
-  relabels the whole panel:
+- **Choosing.** `language` in the settings is the default (`"en"` if omitted). The sidebar shows a **language picker** (named in
+  each language); the editor's choice is remembered in their browser and wins over the default. With `autoDetectLanguage: true`
+  the panel starts in the browser's language when the package ships it.
+- **Your schema's own labels** (collection and group names, field labels, hints, option labels, block names, validation messages)
+  are *your* content model, not panel wording. They may be a plain string or a map per language; the server resolves them to
+  the language the panel is in, so switching language relabels the whole panel:
 
 ```ts
 defineConfig({
-  language: "de",                      // default; omit for English
-  autoDetectLanguage: true,            // optional
-  translations: {
-    de: { save: "Speichern", cancel: "Abbrechen" /* … */ },
-  },
+  language: "tr",           // default panel language: "en" | "tr" (omit for English)
+  autoDetectLanguage: true, // optional
   schema: defineSchema({
     collections: {
       posts: defineCollection({
-        label: { en: "Posts", de: "Beiträge" },
-        fields: {
-          title: str({ en: "Title", de: "Titel" }, { hint: { en: "Shown in lists", de: "In Listen sichtbar" } }),
-        },
+        label: { en: "Posts", tr: "Yazılar" },
+        fields: { title: str({ en: "Title", tr: "Başlık" }, { hint: { en: "Shown in lists", tr: "Listelerde görünür" } }) },
         // …
       }),
     },
@@ -296,7 +290,8 @@ defineConfig({
 Lookup order for a label: exact language (`pt-BR`), then its base (`pt`), then English, then the first entry. A plain string is
 used in every language.
 
-Contributing a language to the package itself: see [ROADMAP.md](ROADMAP.md#panel-languages).
+Content translation (one file per language for your *content*) is a separate feature, see below. To add a panel language to
+the package, see [ROADMAP.md](ROADMAP.md#panel-languages).
 
 ## Localisation
 

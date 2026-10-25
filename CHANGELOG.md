@@ -7,8 +7,8 @@
 - Stores: local files and GitHub (one commit per save, fast-forward only).
 - GitHub sign-in with sealed sessions and CSRF-guarded writes.
 - Validation rules (required, length, pattern, min/max, item counts), enforced server-side and in the panel.
-- Language management: picker, remembered choice, opt-in browser detection, per-language schema labels (`{ en, de }`), project `translations`.
-- Panel UI is i18n-based: English is the only bundled language; `language` + `translations` in the settings add others.
+- Language management: the package owns the panel languages (English, Turkish); picker, remembered choice, opt-in browser detection; per-language schema labels (`{ en, tr }`). Projects cannot add or override panel strings.
+- Panel UI is i18n-based (`src/ui/locales/`), English and Turkish bundled.
 - Media library (list/delete on adapters, Media tab, picker in image fields).
 - Optional pull-request workflow with a Review tab.
 - Sidebar areas (Content / Media / Review) and automatic Collections / Singletons / File sets sections.

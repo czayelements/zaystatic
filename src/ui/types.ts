@@ -22,10 +22,10 @@ export type SessionInfo = {
   name: string;
   /** How saves are published. */
   workflow: "direct" | "pull-request";
-  /** Panel UI language code (see `locales/`). */
+  /** Default panel language (a language the package ships). */
   language: string;
-  /** The project's own strings per language, from `translations` in the config. */
-  translations: Record<string, Record<string, string>>;
+  /** Languages the package ships; the picker offers these. */
+  languages: string[];
   /** Start in the browser's language when available. */
   autoDetectLanguage: boolean;
   apiPath: string;
