@@ -28,11 +28,11 @@ import { clone, cx, renderTemplate, uid } from "./util";
 type Path = (string | number)[];
 type Doc = Record<string, unknown>;
 
-/* ── Liste işlemleri: varsayılan dilde yapılan yapı değişikliği öbür dillere yayılır ── */
+/* ── List operations: structural changes made in the default language are mirrored into the others ── */
 
 export type ListOp =
   | { type: "move"; from: number; to: number }
-  | { type: "add"; index: number }
+  | { type: "add"; index: number; blockType?: string }
   | { type: "remove"; index: number }
   | { type: "dup"; index: number };
 
@@ -40,8 +40,23 @@ type Emit = (path: Path, op: ListOp) => void;
 const ListOpContext = React.createContext<Emit | null>(null);
 export const ListOpProvider = ListOpContext.Provider;
 
-/** Bir belgedeki `path` listesine işlemi uygular (öteki dillerin belgeleri için). */
-export function applyListOp(doc: Doc, path: Path, op: ListOp, item: Field | undefined): Doc {
+/** A block's field schema (behaves like an object). */
+const blockField = (field: Field, type: unknown): Field | undefined => {
+  const b = typeof type === "string" && field.blocks && Object.hasOwn(field.blocks, type) ? field.blocks[type] : undefined;
+  return b ? { type: "object", label: b.label, fields: b.fields, summary: b.summary } : undefined;
+};
+
+/** A new item: defaults-filled item for lists; `_type` + defaults for blocks. */
+const blankItem = (field: Field, blockType?: string): unknown => {
+  if (field.type === "blocks") {
+    const bf = blockField(field, blockType);
+    return bf ? { _type: blockType, ...(normalize(bf, undefined) as object) } : null;
+  }
+  return field.item ? normalize(field.item, undefined) : "";
+};
+
+/** Applies the operation to the list at `path` in a document (for the other languages' documents). `field`: the list/blocks field. */
+export function applyListOp(doc: Doc, path: Path, op: ListOp, field: Field | undefined): Doc {
   const next = clone(doc);
   let cur: unknown = next;
   for (const key of path) {
@@ -49,7 +64,7 @@ export function applyListOp(doc: Doc, path: Path, op: ListOp, item: Field | unde
     cur = (cur as Record<string | number, unknown>)[key];
   }
   if (!Array.isArray(cur)) return doc;
-  const blank = () => (item ? normalize(item, undefined) : "");
+  const blank = () => (field ? blankItem(field, op.type === "add" ? op.blockType : undefined) : "");
   if (op.type === "move") {
     const moved = arrayMove(cur, op.from, op.to);
     cur.splice(0, cur.length, ...moved);
@@ -59,13 +74,17 @@ export function applyListOp(doc: Doc, path: Path, op: ListOp, item: Field | unde
   return next;
 }
 
-/* ── Arama süzgeci ──────────────────────────────────────────────── */
+/* ── Search filter ──────────────────────────────────────────────── */
 
 function matches(key: string, field: Field, value: unknown, q: string): boolean {
   if (key.toLowerCase().includes(q) || field.label.toLowerCase().includes(q)) return true;
   if (typeof value === "string") return value.toLowerCase().includes(q);
   if (Array.isArray(value)) {
-    return value.some((v) => (typeof v === "string" ? v.toLowerCase().includes(q) : field.item ? descends(field.item, v, q) : false));
+    return value.some((v) => {
+      if (typeof v === "string") return v.toLowerCase().includes(q);
+      const item = field.type === "blocks" ? blockField(field, (v as Doc | null)?._type) : field.item;
+      return item ? descends(item, v, q) : false;
+    });
   }
   if (value && typeof value === "object" && field.fields) return descends(field, value, q);
   return false;
@@ -76,13 +95,13 @@ function descends(field: Field, value: unknown, q: string): boolean {
   return Object.entries(field.fields).some(([k, f]) => matches(k, f, (value as Doc)[k], q));
 }
 
-/* ── Alanlar ────────────────────────────────────────────────────── */
+/* ── Fields ─────────────────────────────────────────────────────── */
 
 type FormProps = {
   fields: Fields;
   value: Doc;
   onChange: (next: Doc) => void;
-  /** Çeviri sekmesi: varsayılan dilin belgesi (alt metin olarak gösterilir, yapı kilitlenir). */
+  /** Translation tab: the default language's document (shown as helper text; structure is locked). */
   reference?: Doc | null;
   filter?: string;
   path?: Path;
@@ -120,7 +139,7 @@ type RowProps = {
   filter?: string;
   path: Path;
   onChange: (v: unknown) => void;
-  /** Etiketsiz, tek satır (satır içi nesne alt alanları). */
+  /** Label-less, single row (sub-fields of an inline object). */
   compact?: boolean;
 };
 
@@ -216,6 +235,7 @@ function Control(props: RowProps) {
     case "object":
       return <ObjectField {...props} />;
     case "list":
+    case "blocks":
       return <ListField {...props} />;
     default:
       return <p className="zs-muted">{name}: ?</p>;
@@ -248,7 +268,7 @@ function Area({ value, onChange, rows, mono }: { value: string; onChange: (v: st
   );
 }
 
-/* ── Görsel: bağlantı yapıştır ya da yükle (sürükle / yapıştır / seç) ── */
+/* ── Image: paste a link or upload (drag / paste / pick) ───────── */
 
 const looksLikeUrl = (v: string) => /^(https?:\/\/|\/|data:image\/)/.test(v.trim());
 
@@ -298,7 +318,7 @@ function ImageField({ value, onChange, placeholder }: { value: string; onChange:
       }}
     >
       {value && looksLikeUrl(value) && !broken ? (
-        // eslint-disable-next-line @next/next/no-img-element -- yönetici önizlemesi: dış alan adı, optimizasyon gerekmiyor
+        // eslint-disable-next-line @next/next/no-img-element -- admin preview of an external host, no optimisation needed
         <img className="zs-image-preview" src={value} alt="" onError={() => setBroken(true)} onLoad={() => setBroken(false)} />
       ) : (
         <div className="zs-image-preview zs-image-empty">{busy ? t.uploading : "—"}</div>
@@ -383,7 +403,7 @@ function SelectField({ field, value, onChange }: { field: Field; value: string; 
   );
 }
 
-/* ── İlişkili kayıtlar ─────────────────────────────────────────── */
+/* ── Related entries ───────────────────────────────────────────── */
 
 const optionCache = new Map<string, Promise<{ value: string; label: string }[]>>();
 
@@ -456,7 +476,7 @@ function RelationField({ field, value, onChange }: { field: Field; value: unknow
   );
 }
 
-/* ── Nesne ──────────────────────────────────────────────────────── */
+/* ── Object ─────────────────────────────────────────────────────── */
 
 function ObjectField({ field, value, reference, translating, filter, path, onChange }: RowProps) {
   const src = (value && typeof value === "object" && !Array.isArray(value) ? value : {}) as Doc;
@@ -494,7 +514,7 @@ function ObjectField({ field, value, reference, translating, filter, path, onCha
   );
 }
 
-/* ── Liste: sürükle-bırak, aç/kapa, çoğalt, sil ──────────────────── */
+/* ── List: drag and drop, expand/collapse, duplicate, delete ───── */
 
 function itemTitle(item: Field, value: unknown, summary: string | undefined, index: number, empty: string) {
   if (summary) {
@@ -515,16 +535,24 @@ function itemTitle(item: Field, value: unknown, summary: string | undefined, ind
 function ListField({ field, value, reference, translating, filter, path, onChange }: RowProps) {
   const { t } = useZay();
   const emit = React.useContext(ListOpContext);
-  const item = field.item as Field;
-  const isObject = item.type === "object";
+  const isBlocks = field.type === "blocks";
+  const item = (field.item ?? { type: "object", label: "", fields: {} }) as Field;
+  /* The item's schema: always the same in a list; by `_type` in blocks. */
+  const itemOf = (entry: unknown): Field | undefined => (isBlocks ? blockField(field, (entry as Doc | null)?._type) : item);
+  const isObject = isBlocks || item.type === "object";
   const refList = Array.isArray(reference) ? reference : null;
-  /* Çeviri sekmesinde yapı kilitli: eleman sayısı varsayılan dildekiyle aynı. */
+  /* In a translation tab the structure is locked: same item count as the default language. */
   const locked = translating && refList !== null;
   const raw = Array.isArray(value) ? value : [];
-  const items = locked ? Array.from({ length: refList.length }, (_, i) => raw[i] ?? normalize(item, undefined)) : raw;
+  const items = locked
+    ? Array.from({ length: refList.length }, (_, i) => {
+        if (raw[i] !== undefined) return raw[i];
+        return isBlocks ? blankItem(field, (refList[i] as Doc | null)?._type as string) : normalize(item, undefined);
+      })
+    : raw;
 
-  /* Kararlı kimlikler (sürükle-bırak ve aç/kapa durumu için). Eleman sayısı dışarıdan
-     değişirse (yükleme, "şundan kopyala") render sırasında eşitlenir. */
+  /* Stable ids (for drag and drop and expand/collapse state). If the item count
+     changes from outside (loading, "copy from"), they are synced during render. */
   const [ids, setIds] = React.useState<string[]>(() => items.map(uid));
   let keys = ids;
   if (ids.length !== items.length) {
@@ -549,12 +577,12 @@ function ListField({ field, value, reference, translating, filter, path, onChang
     commit(arrayMove(items, from, to));
     emit?.(path, { type: "move", from, to });
   };
-  const add = () => {
+  const add = (blockType?: string) => {
     const id = uid();
     setIds([...keys, id]);
     setOpen((o) => ({ ...o, [id]: true }));
-    commit([...items, normalize(item, undefined)]);
-    emit?.(path, { type: "add", index: items.length });
+    commit([...items, blankItem(field, blockType)]);
+    emit?.(path, { type: "add", index: items.length, blockType });
   };
   const remove = (i: number) => {
     setIds(keys.filter((_, j) => j !== i));
@@ -605,13 +633,16 @@ function ListField({ field, value, reference, translating, filter, path, onChang
           <div className="zs-list-body">
             {items.map((entry, i) => {
               const id = keys[i]!;
-              if (q && !(typeof entry === "string" ? entry.toLowerCase().includes(q) : descends(item, entry, q))) return null;
+              const itemField = itemOf(entry);
+              if (!itemField) return null;
+              if (q && !(typeof entry === "string" ? entry.toLowerCase().includes(q) : descends(itemField, entry, q))) return null;
               return (
                 <SortableItem
                   key={id}
                   id={id}
                   locked={locked}
-                  title={isObject ? itemTitle(item, entry, field.summary ?? item.summary, i, t.untitled) : undefined}
+                  title={isObject ? itemTitle(itemField, entry, itemField.summary ?? field.summary ?? item.summary, i, t.untitled) : undefined}
+                  badge={isBlocks ? itemField.label : undefined}
                   index={i}
                   open={isObject ? isOpen(id) : true}
                   collapsible={isObject}
@@ -621,7 +652,7 @@ function ListField({ field, value, reference, translating, filter, path, onChang
                 >
                   {isObject ? (
                     <Form
-                      fields={item.fields ?? {}}
+                      fields={itemField.fields ?? {}}
                       value={(entry && typeof entry === "object" ? entry : {}) as Doc}
                       reference={locked ? ((refList?.[i] as Doc) ?? {}) : undefined}
                       filter={filter}
@@ -641,8 +672,17 @@ function ListField({ field, value, reference, translating, filter, path, onChang
         </SortableContext>
       </DndContext>
 
-      {!locked && (
-        <button type="button" className="zs-add" onClick={add}>
+      {!locked && isBlocks && (
+        <div className="zs-add-blocks">
+          {Object.entries(field.blocks ?? {}).map(([type, b]) => (
+            <button key={type} type="button" className="zs-add" onClick={() => add(type)}>
+              <Plus /> {b.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {!locked && !isBlocks && (
+        <button type="button" className="zs-add" onClick={() => add()}>
           <Plus /> {t.add}
         </button>
       )}
@@ -654,6 +694,7 @@ function SortableItem({
   id,
   locked,
   title,
+  badge,
   index,
   open,
   collapsible,
@@ -665,6 +706,7 @@ function SortableItem({
   id: string;
   locked: boolean;
   title?: string;
+  badge?: string;
   index: number;
   open: boolean;
   collapsible: boolean;
@@ -688,6 +730,7 @@ function SortableItem({
           <button type="button" className="zs-item-title" onClick={onToggle} aria-expanded={open}>
             <Chevron className={cx("zs-chev", open && "is-open")} />
             <span className="zs-item-no">{index + 1}</span>
+            {badge && <span className="zs-block-badge">{badge}</span>}
             <span className="zs-item-text">{title}</span>
           </button>
         ) : (

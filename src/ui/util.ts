@@ -1,4 +1,4 @@
-/** `{{a.b}}` yer tutucularını belgeden doldurur (`fields.` öneki yok sayılır). */
+/** Fills `{{a.b}}` placeholders from the document (a `fields.` prefix is ignored). */
 export function renderTemplate(tpl: string, data: unknown): string {
   return tpl
     .replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, path: string) => {
@@ -31,10 +31,10 @@ export const clone = <T,>(v: T): T => (v === undefined ? v : (JSON.parse(JSON.st
 
 export const cx = (...parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" ");
 
-/** Değer boş mu? (sunucudaki isEmptyValue ile aynı kural) */
+/** Is the value empty? (same rule as isEmptyValue on the server) */
 export function isEmpty(v: unknown): boolean {
   if (v == null || v === "" || v === false) return true;
   if (Array.isArray(v)) return v.every(isEmpty);
-  if (typeof v === "object") return Object.values(v as object).every(isEmpty);
+  if (typeof v === "object") return Object.entries(v as object).every(([k, x]) => k === "_type" || isEmpty(x));
   return false;
 }

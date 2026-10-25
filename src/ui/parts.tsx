@@ -6,7 +6,7 @@ import { useZay } from "./context";
 import { Check } from "./icons";
 import { cx, isEmpty } from "./util";
 
-/** Bir isteği çalıştırır; `deps` değişince yenisini başlatır. Yükleniyor durumu istek anahtarından türetilir. */
+/** Runs a request and starts a new one when `deps` change. The loading state is derived from the request key. */
 export function useAsync<T>(fn: () => Promise<T>, deps: React.DependencyList) {
   const [tick, setTick] = React.useState(0);
   const key = JSON.stringify([...deps, tick]);
@@ -57,7 +57,7 @@ export function ErrorBox({ message }: { message: string }) {
   return <p className="zs-error zs-pad">{message}</p>;
 }
 
-/** Dil sekmeleri: dolu diller işaretli. */
+/** Language tabs: filled languages are marked. */
 export function LocaleTabs({
   locales,
   docs,
@@ -88,7 +88,7 @@ export function LocaleTabs({
   );
 }
 
-/** Altta yapışık kaydet çubuğu. */
+/** Sticky save bar at the bottom. */
 export function SaveBar({
   dirty,
   saving,
@@ -138,7 +138,7 @@ export function useSaveShortcut(onSave: () => void) {
   }, []);
 }
 
-/** Taslak ↔ kayıtlı karşılaştırması ve gezinme bekçisi. */
+/** Draft ↔ saved comparison and navigation guard. */
 export function useDirty<T>(current: T | undefined, saved: string | null) {
   const { setGuard } = useZay();
   const dirty = current !== undefined && saved !== null && JSON.stringify(current) !== saved;

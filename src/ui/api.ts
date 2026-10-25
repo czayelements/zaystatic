@@ -22,7 +22,7 @@ export function createApi(base: string) {
     if (!res.ok) throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
     return data as T;
   }
-  /** Dosya yükler (multipart); herkese açık adresi döner. */
+  /** Uploads a file (multipart); returns its public URL. */
   async function upload(file: File): Promise<{ url: string }> {
     const body = new FormData();
     body.append("file", file);

@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { normalize, obj, translatableFields } from "../schema/dsl.mjs";
-import type { Field, Fields } from "../schema/dsl.mjs";
+import type { BlockType, Field, Fields } from "../schema/dsl.mjs";
 import { Link, useZay } from "./context";
 import { Form, ListOpProvider, applyListOp } from "./form";
 import type { ListOp } from "./form";
@@ -14,7 +14,7 @@ import { clone, cx, slugify } from "./util";
 
 type SaveResult = { ok: boolean; unchanged?: boolean; id?: string; url?: string; files?: number };
 
-/* ── Genel bakış ────────────────────────────────────────────────── */
+/* ── Overview ───────────────────────────────────────────────────── */
 
 export function Dashboard() {
   const { schema, session, t } = useZay();
@@ -56,7 +56,7 @@ export function navSections(schema: ReturnType<typeof useZay>["schema"]): NavSec
   return out.filter((s) => s.items.length);
 }
 
-/* ── Koleksiyon listesi ─────────────────────────────────────────── */
+/* ── Collection list ────────────────────────────────────────────── */
 
 export function CollectionView({ name }: { name: string }) {
   const { api, schema, t } = useZay();
@@ -116,7 +116,7 @@ export function CollectionView({ name }: { name: string }) {
   );
 }
 
-/* ── Kayıt düzenleyici ──────────────────────────────────────────── */
+/* ── Entry editor ───────────────────────────────────────────────── */
 
 const blankDocs = (fields: Fields, locales: string[], def: string, localized: boolean): Docs => {
   const docs: Docs = {};
@@ -126,9 +126,20 @@ const blankDocs = (fields: Fields, locales: string[], def: string, localized: bo
   return docs;
 };
 
-function listFieldAt(fields: Fields, path: (string | number)[]): Field | undefined {
+/** Resolves a path to a list/blocks field; indexes through blocks are resolved by the `_type` found in the document. */
+function listFieldAt(fields: Fields, path: (string | number)[], doc: unknown): Field | undefined {
   let f: Field | undefined = { type: "object", label: "", fields };
-  for (const k of path) f = typeof k === "number" ? f?.item : f?.fields?.[k];
+  let cur: unknown = doc;
+  for (const k of path) {
+    if (typeof k === "number") {
+      if (f?.type === "blocks") {
+        const type = String((cur as Record<number, { _type?: string }> | undefined)?.[k]?._type);
+        const b: BlockType | undefined = f.blocks?.[type];
+        f = b ? { type: "object", label: b.label, fields: b.fields } : undefined;
+      } else f = f?.item;
+    } else f = f?.fields?.[k];
+    cur = (cur as Record<string | number, unknown> | undefined)?.[k];
+  }
   return f;
 }
 
@@ -140,7 +151,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const localized = col?.layout === "locales";
   const Editor = col?.editor ? editors[col.editor] : undefined;
 
-  /* Panel bu bileşeni her kayıt için yeniden kurar (key), bu yüzden başlangıç durumu tek seferlik. */
+  /* The panel remounts this component for every entry (key), so the initial state is one-shot. */
   const initial = isNew && col ? blankDocs(col.fields, schema.locales, def, localized) : null;
   const [docs, setDocs] = React.useState<Docs | null>(initial);
   const [saved, setSaved] = React.useState<string | null>(initial ? JSON.stringify(initial) : null);
@@ -210,11 +221,11 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const onListOp = React.useCallback(
     (path: (string | number)[], op: ListOp) => {
       if (!col || !localized) return;
-      const item = listFieldAt(col.fields, path)?.item;
       setDocs((prev) => {
         if (!prev) return prev;
+        const listField = listFieldAt(col.fields, path, prev[def]);
         const next: Docs = { ...prev };
-        for (const l of schema.locales) if (l !== def) next[l] = applyListOp(prev[l] ?? {}, path, op, item);
+        for (const l of schema.locales) if (l !== def) next[l] = applyListOp(prev[l] ?? {}, path, op, listField);
         return next;
       });
     },
@@ -322,7 +333,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   );
 }
 
-/* ── Tek kayıt ──────────────────────────────────────────────────── */
+/* ── Singleton ──────────────────────────────────────────────────── */
 
 export function SingletonView({ name }: { name: string }) {
   const { api, schema, t, toast } = useZay();
@@ -375,7 +386,7 @@ export function SingletonView({ name }: { name: string }) {
   );
 }
 
-/* ── Dosya takımları (arayüz metinleri) ─────────────────────────── */
+/* ── File sets (UI strings) ─────────────────────────────────────── */
 
 export function FileSetView({ name, file }: { name: string; file?: string }) {
   const { api, schema } = useZay();
@@ -459,11 +470,11 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
   const onListOp = React.useCallback(
     (path: (string | number)[], op: ListOp) => {
       if (!data) return;
-      const item = listFieldAt(data.fields, path)?.item;
       setDocs((prev) => {
         if (!prev) return prev;
+        const listField = listFieldAt(data.fields, path, prev[def]);
         const next: Docs = { ...prev };
-        for (const l of schema.locales) if (l !== def) next[l] = applyListOp(prev[l] ?? {}, path, op, item);
+        for (const l of schema.locales) if (l !== def) next[l] = applyListOp(prev[l] ?? {}, path, op, listField);
         return next;
       });
     },

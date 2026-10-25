@@ -11,9 +11,9 @@ import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
 
 export type ZayAppProps = {
-  /** API adresi (ZayConfig.apiPath ile aynı), örn. "/api/zay". */
+  /** API path (same as ZayConfig.apiPath), e.g. "/api/zay". */
   apiPath: string;
-  /** Siteye özgü özel editörler: Collection.editor adı → bileşen. */
+  /** Site-specific custom editors: Collection.editor name → component. */
   editors?: EditorMap;
 };
 
@@ -94,7 +94,7 @@ function parse(path: string): { view: string; parts: string[] } {
 
 function Shell() {
   const { path, schema, session, t, api } = useZay();
-  /* Menü açıkken sayfa değişirse kapanır: açık olduğu yolu saklıyoruz. */
+  /* The menu closes when the page changes: we remember the path it was opened on. */
   const [menuPath, setMenuPath] = React.useState<string | null>(null);
   const menu = menuPath === path;
   const setMenu = (open: boolean) => setMenuPath(open ? path : null);

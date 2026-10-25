@@ -2,20 +2,20 @@ import { fieldsFromSample, isEmptyValue, normalize, obj, translatableFields } fr
 import type { Field, Fields } from "../schema/dsl.mjs";
 import { parseDoc, serializeDoc } from "./serialize";
 import { HttpError } from "./types";
-import type { Change, Collection, FileSet, FileSetFile, Store, ZayConfig } from "./types";
+import type { Change, Collection, FileSet, FileSetFile, ResolvedConfig, Store } from "./types";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-export type Ctx = { config: ZayConfig; store: Store };
+export type Ctx = { config: ResolvedConfig; store: Store };
 
 export type EntrySummary = {
   slug: string;
   title: string;
   summary: string;
-  /** Dosyası olan diller. */
+  /** Languages that have a file. */
   locales: string[];
-  /** Panelde "yayında" bayrağı olan koleksiyonlarda; yoksa undefined. */
+  /** For collections with a "published" flag; undefined otherwise. */
   published?: boolean;
 };
 
@@ -24,22 +24,22 @@ type Row = EntrySummary & { _sort?: unknown };
 export type EntryData = {
   slug: string;
   layout: "plain" | "locales";
-  /** Dil → o dilin belgesi (şemaya göre tamamlanmış). */
+  /** Language → that language's document (completed from the schema). */
   docs: Record<string, Record<string, unknown>>;
-  /** Dosyası depoda olan diller. */
+  /** Languages whose file exists in the store. */
   existing: string[];
 };
 
-const collectionOf = (config: ZayConfig, name: string): Collection => {
+const collectionOf = (config: ResolvedConfig, name: string): Collection => {
   const c = Object.hasOwn(config.collections, name) ? config.collections[name] : undefined;
-  if (!c) throw new HttpError(404, `koleksiyon yok: ${name}`);
+  if (!c) throw new HttpError(404, `unknown collection: ${name}`);
   return c;
 };
 
 const bodyKeyOf = (fields: Fields) => Object.entries(fields).find(([, f]) => f.type === "markdown")?.[0] ?? "body";
 const ext = (c: Collection) => (c.layout === "locales" ? (c.ext ?? "json") : "json");
 
-/** `{{a.b}}` yer tutucularını belgeden doldurur. */
+/** Fills `{{a.b}}` placeholders from the document. */
 export function renderTemplate(tpl: string, data: unknown): string {
   return tpl
     .replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_, path: string) => {
@@ -52,8 +52,8 @@ export function renderTemplate(tpl: string, data: unknown): string {
 }
 
 /**
- * Yalnız gerçekten değişen dosyaları commit eder; hiçbir şey değişmediyse
- * commit atılmaz (boş commit gereksiz bir yayın tetiklerdi).
+ * Commits only the files that really changed; if nothing changed, no commit
+ * is made (an empty commit would trigger a pointless deploy).
  */
 async function commitChanges(store: Store, changes: Change[], message: string) {
   const real: Change[] = [];
@@ -67,9 +67,9 @@ async function commitChanges(store: Store, changes: Change[], message: string) {
   return { ...res, files: real.length };
 }
 
-/* ── Koleksiyonlar ──────────────────────────────────────────────── */
+/* ── Collections ────────────────────────────────────────────────── */
 
-function slugsOf(config: ZayConfig, c: Collection, files: string[]) {
+function slugsOf(config: ResolvedConfig, c: Collection, files: string[]) {
   const e = ext(c);
   if (c.layout === "plain") {
     return new Map<string, string[]>(
@@ -86,7 +86,7 @@ function slugsOf(config: ZayConfig, c: Collection, files: string[]) {
   return map;
 }
 
-const fileName = (config: ZayConfig, c: Collection, slug: string, locale: string) =>
+const fileName = (config: ResolvedConfig, c: Collection, slug: string, locale: string) =>
   c.layout === "plain" ? `${slug}.json` : `${slug}.${locale}.${ext(c)}`;
 
 export async function listEntries({ config, store }: Ctx, name: string): Promise<EntrySummary[]> {
@@ -103,7 +103,7 @@ export async function listEntries({ config, store }: Ctx, name: string): Promise
       const text = await store.read(path);
       if (text == null) return null;
       try {
-        /* Liste için gövdeyi okumuyoruz (büyük olabilir): yalnız üst alanlar. */
+        /* Lists do not need the body (it can be large), only the top-level fields. */
         const doc = normalize(full, parseDoc(text, ext(c), bodyKey, path)) as Record<string, unknown>;
         const flag = doc.isPublished ?? doc.published;
         return {
@@ -115,7 +115,7 @@ export async function listEntries({ config, store }: Ctx, name: string): Promise
           ...(c.sort ? { _sort: doc[c.sort.field] } : {}),
         };
       } catch {
-        return { slug, title: slug, summary: "⚠ dosya okunamadı", locales };
+        return { slug, title: slug, summary: "⚠ file could not be read", locales };
       }
     }),
   );
@@ -141,10 +141,10 @@ export async function listEntries({ config, store }: Ctx, name: string): Promise
 
 export async function readEntry({ config, store }: Ctx, name: string, slug: string): Promise<EntryData> {
   const c = collectionOf(config, name);
-  if (!SLUG.test(slug)) throw new HttpError(400, "geçersiz adres");
+  if (!SLUG.test(slug)) throw new HttpError(400, "invalid address");
   const files = await store.list(c.dir);
   const existing = slugsOf(config, c, files).get(slug) ?? [];
-  if (!existing.includes(config.defaultLocale)) throw new HttpError(404, "kayıt yok");
+  if (!existing.includes(config.defaultLocale)) throw new HttpError(404, "entry not found");
 
   const bodyKey = bodyKeyOf(c.fields);
   const docs: EntryData["docs"] = {};
@@ -170,12 +170,12 @@ export async function writeEntry(
   opts: { create: boolean },
 ) {
   const c = collectionOf(config, name);
-  if (!SLUG.test(slug)) throw new HttpError(400, "Adres yalnız küçük harf, rakam ve tire içerebilir.");
+  if (!SLUG.test(slug)) throw new HttpError(400, "The address may only contain lowercase letters, numbers and dashes.");
   const def = config.defaultLocale;
   const files = await store.list(c.dir);
   const existing = slugsOf(config, c, files).get(slug) ?? [];
-  if (opts.create && existing.length) throw new HttpError(409, "Bu adreste bir kayıt zaten var.");
-  if (!opts.create && !existing.includes(def)) throw new HttpError(404, "kayıt yok");
+  if (opts.create && existing.length) throw new HttpError(409, "An entry with this address already exists.");
+  if (!opts.create && !existing.includes(def)) throw new HttpError(404, "entry not found");
 
   const bodyKey = bodyKeyOf(c.fields);
   const changes: Change[] = [];
@@ -188,7 +188,7 @@ export async function writeEntry(
 
     if (locale === def) {
       if (!String(doc[c.identifier] ?? "").trim()) {
-        throw new HttpError(422, `"${c.fields[c.identifier]?.label ?? c.identifier}" boş olamaz.`);
+        throw new HttpError(422, `"${c.fields[c.identifier]?.label ?? c.identifier}" cannot be empty.`);
       }
     } else if (isEmptyValue(doc)) {
       if (existing.includes(locale)) changes.push({ path, content: null });
@@ -203,25 +203,25 @@ export async function writeEntry(
 
 export async function deleteEntry({ config, store }: Ctx, name: string, slug: string) {
   const c = collectionOf(config, name);
-  if (!SLUG.test(slug)) throw new HttpError(400, "geçersiz adres");
+  if (!SLUG.test(slug)) throw new HttpError(400, "invalid address");
   const files = await store.list(c.dir);
   const existing = slugsOf(config, c, files).get(slug) ?? [];
-  if (!existing.length) throw new HttpError(404, "kayıt yok");
+  if (!existing.length) throw new HttpError(404, "entry not found");
   const changes: Change[] = existing.map((locale) => ({ path: `${c.dir}/${fileName(config, c, slug, locale)}`, content: null }));
   return commitChanges(store, changes, `content(${name}): delete ${slug}`);
 }
 
-/** Relation alanları için: koleksiyonun adres + başlık listesi. */
+/** For relation fields: the collection's addresses + titles. */
 export async function optionsOf(ctx: Ctx, name: string) {
   const rows = await listEntries(ctx, name);
   return rows.map((r) => ({ value: r.slug, label: r.title }));
 }
 
-/* ── Tek dosyalar ───────────────────────────────────────────────── */
+/* ── Singletons ─────────────────────────────────────────────────── */
 
-const singletonOf = (config: ZayConfig, name: string) => {
-  const s = config.singletons && Object.hasOwn(config.singletons, name) ? config.singletons[name] : undefined;
-  if (!s) throw new HttpError(404, `kayıt yok: ${name}`);
+const singletonOf = (config: ResolvedConfig, name: string) => {
+  const s = Object.hasOwn(config.singletons, name) ? config.singletons[name] : undefined;
+  if (!s) throw new HttpError(404, `unknown singleton: ${name}`);
   return s;
 };
 
@@ -238,11 +238,11 @@ export async function writeSingleton({ config, store }: Ctx, name: string, doc: 
   return commitChanges(store, [{ path: s.file, content: serializeDoc(data, "json", "body") }], `content(${name}): update`);
 }
 
-/* ── Dosya takımları (arayüz metinleri) ─────────────────────────── */
+/* ── File sets (UI strings) ─────────────────────────────────────── */
 
-const fileSetOf = (config: ZayConfig, name: string): FileSet => {
-  const f = config.fileSets && Object.hasOwn(config.fileSets, name) ? config.fileSets[name] : undefined;
-  if (!f) throw new HttpError(404, `dosya takımı yok: ${name}`);
+const fileSetOf = (config: ResolvedConfig, name: string): FileSet => {
+  const f = Object.hasOwn(config.fileSets, name) ? config.fileSets[name] : undefined;
+  if (!f) throw new HttpError(404, `unknown file set: ${name}`);
   return f;
 };
 const at = (tpl: string, locale: string, name?: string) =>
@@ -263,7 +263,7 @@ export async function listFileSetFiles({ config, store }: Ctx, name: string): Pr
 
 async function fileSetFile(ctx: Ctx, name: string, file: string) {
   const found = (await listFileSetFiles(ctx, name)).find((f) => f.name === file);
-  if (!found) throw new HttpError(404, "dosya yok");
+  if (!found) throw new HttpError(404, "file not found");
   return found;
 }
 
@@ -276,7 +276,7 @@ export async function readFileSet(ctx: Ctx, name: string, file: string) {
     return text == null ? null : (parseDoc(text, "json", "body", path) as Record<string, unknown>);
   };
   const base = await read(config.defaultLocale);
-  if (!base) throw new HttpError(404, "varsayılan dil dosyası yok");
+  if (!base) throw new HttpError(404, "default-language file not found");
   const fields: Fields = fieldsFromSample(base);
   const docs: Record<string, Record<string, unknown>> = {};
   for (const locale of config.locales) {

@@ -47,11 +47,54 @@ test/                node:test suites (pnpm test:zay)
 
 ## Mounting in a Next.js app
 
-1. **Config** (`zay.config.ts`, server side):
+zay-static is configured with two files that live in your project:
+
+- **`zay.schema.ts`** — the *content model*: which kinds of content exist and what
+  fields they have (collections, singletons, file sets, sidebar groups).
+- **`zay.config.ts`** — the *settings*: name, locales, paths, repository, image
+  storage. It pulls the schema in via `schema:`.
+
+1. **Schema** (`zay.schema.ts`):
 
    ```ts
-   import { defineConfig } from "zay-static";
-   import { str, text, bool, markdown, select, list, obj } from "zay-static/schema";
+   import { defineSchema, defineCollection, defineSingleton } from "zay-static";
+   import { str, text, bool, image, markdown, select, list, obj, blocks, block } from "zay-static/schema";
+
+   export default defineSchema({
+     groups: [{ id: "content", label: "Content" }, { id: "site", label: "Site" }],
+     collections: {
+       posts: defineCollection({
+         label: "Posts", group: "content",
+         dir: "content/posts", layout: "locales", ext: "mdx", identifier: "title",
+         summary: "{{title}} · {{status}}",
+         sort: { field: "publishedAt", order: "desc" },
+         fields: {
+           title: str("Title", { i18n: "translate" }),
+           status: select("Status", [{ label: "Draft", value: "draft" }, { label: "Live", value: "live" }], "draft"),
+           cover: image("Cover"),
+           body: markdown("Body", { i18n: "translate" }),
+         },
+       }),
+     },
+     singletons: {
+       home: defineSingleton({
+         label: "Home page", group: "site", file: "content/home.json",
+         fields: {
+           sections: blocks("Sections", {
+             hero: block("Hero", { title: str("Title", { i18n: "translate" }), image: image("Image") }),
+             text: block("Text", { body: markdown("Body", { i18n: "translate" }) }),
+           }),
+         },
+       }),
+     },
+   });
+   ```
+
+2. **Settings** (`zay.config.ts`):
+
+   ```ts
+   import { defineConfig, repoMedia, s3MediaFromEnv } from "zay-static";
+   import schema from "./zay.schema";
 
    export default defineConfig({
      name: "My site",
@@ -60,23 +103,15 @@ test/                node:test suites (pnpm test:zay)
      basePath: "/cms",          // where the page lives
      apiPath: "/api/cms",       // where the route handler lives
      repo: { owner: "me", name: "my-site", branch: "main" },
-     groups: [{ id: "content", label: "Content" }],
-     collections: {
-       posts: {
-         label: "Posts", group: "content",
-         dir: "content/posts", layout: "locales", ext: "mdx", identifier: "title",
-         summary: "{{title}} · {{status}}",
-         fields: {
-           title: str("Title", { i18n: "translate" }),
-           status: select("Status", [{ label: "Draft", value: "draft" }, { label: "Live", value: "live" }], "draft"),
-           body: markdown("Body", { i18n: "translate" }),
-         },
-       },
-     },
+     media: { adapter: s3MediaFromEnv() ?? repoMedia() },
+     schema,
    });
    ```
 
-2. **API route** (`app/api/cms/[...path]/route.ts`):
+   (Keeping everything in one file also works: pass `collections`, `singletons`,
+   `fileSets` and `groups` directly to `defineConfig`. Top-level entries win over `schema`.)
+
+3. **API route** (`app/api/cms/[...path]/route.ts`):
 
    ```ts
    import { createNextHandlers } from "zay-static/next";
@@ -86,7 +121,7 @@ test/                node:test suites (pnpm test:zay)
    export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
    ```
 
-3. **Page** (`app/cms/layout.tsx` imports `zay-static/styles.css`;
+4. **Page** (`app/cms/layout.tsx` imports `zay-static/styles.css`;
    `app/cms/[[...path]]/page.tsx` renders a client component):
 
    ```tsx
@@ -100,19 +135,47 @@ test/                node:test suites (pnpm test:zay)
 
 ## Content model
 
+Three **content kinds**, each with its own definition helper:
+
+| kind | helper | stored as | typical use |
+| --- | --- | --- | --- |
+| collection | `defineCollection` | one file per entry in a folder | posts, products, team members |
+| singleton | `defineSingleton` | one file | site settings, a home page, navigation |
+| file set | `defineFileSet` | the same JSON shape per language | UI strings (`messages/<locale>/*.json`) |
+
+A collection's `layout`:
+
 | `layout` | files | notes |
 | --- | --- | --- |
 | `plain` | `<slug>.json` | one file, one entry |
 | `locales` | `<slug>.<locale>.json\|mdx` | default locale = all fields; others = fields with `i18n: "translate"` only. Empty translations are deleted, not written. |
 
-`mdx` entries are YAML frontmatter + the body (the one `markdown` field).
-**Singletons** are single JSON files. **File sets** (`fileSets`) are the same JSON
-shape per locale (UI strings): the form is derived from the default-locale file.
+`mdx` entries are YAML frontmatter + the body (the one `markdown` field). File sets
+need no schema: the form is derived from the default-locale file.
 
-Fields: `str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`,
-`relation(s)`, `list`, `obj` (`{ inline: true }` renders sub-fields as one row).
-Options common to all: `hint`, `default`, `i18n: "translate"`; lists/objects take
-`summary: "{{fields.title}}"` for the collapsed row title.
+### Field types
+
+Every field has a type, and each type has its own editor in the panel.
+
+| type | helper | editor | stored as |
+| --- | --- | --- | --- |
+| text | `str` | single-line input | string |
+| long text | `text` | auto-growing textarea | string |
+| markdown | `markdown` | monospace editor (raw, lossless) | string |
+| image | `image` | link input + preview + upload (picker, drop, paste) | string (URL/path) |
+| number | `int` | number input | number \| null |
+| boolean | `bool` | switch | boolean |
+| select | `select` | segmented control (≤ 4 options) or dropdown | string |
+| date / datetime | `date`, `datetime` | native pickers | `YYYY-MM-DD` / `YYYY-MM-DDTHH:mm` |
+| relation(s) | `relation`, `relations` | dropdown / chips, fed by another collection | slug(s) |
+| object | `obj` | group (`{ inline: true }` → one row) | object |
+| list | `list` | **drag-and-drop** sortable, collapsible, duplicate, delete | array |
+| blocks | `blocks` + `block` | **drag-and-drop** list of *typed* items; pick a block type to add | `[{ _type, ...fields }]` |
+
+Options common to all: `hint`, `default`, `i18n: "translate"`. Lists, objects and
+blocks take `summary: "{{fields.title}}"` for the collapsed row title. Structural
+changes to a list or blocks field in the default language (add, remove, move,
+duplicate) are mirrored into the translations, which stay position-aligned.
 
 ## Environment
 

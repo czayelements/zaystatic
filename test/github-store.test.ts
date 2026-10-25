@@ -5,7 +5,7 @@ import { after, before, test } from "node:test";
 
 import { githubStore } from "../src/core/store-github";
 
-/* Küçük bir sahte GitHub: yalnız panelin kullandığı uçlar. */
+/* A tiny fake GitHub: only the endpoints the panel uses. */
 type Tree = Record<string, string>;
 let files: Tree = {};
 let head = "c1";
@@ -120,7 +120,7 @@ test("commit: a concurrent push surfaces a clear error instead of overwriting", 
   commits = { c1: { ...files } };
   head = "c1";
   racing = true;
-  await assert.rejects(store().commit([{ path: "content/a.json", content: "mine" }], "m"), /başka bir yerden değişti/);
+  await assert.rejects(store().commit([{ path: "content/a.json", content: "mine" }], "m"), /changed elsewhere/);
   racing = false;
   assert.equal(files["content/a.json"], "x");
 });

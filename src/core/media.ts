@@ -3,11 +3,11 @@ import { createHash, createHmac, randomBytes } from "node:crypto";
 import type { Store } from "./types";
 
 /**
- * Görsel yükleme. Panel dosyayı sunucuya gönderir; sunucu doğrular
- * (boyut, tür, dosyanın gerçek baytları) ve bir MediaAdapter'a verir.
- * Adapter yalnızca "bu baytları şu anahtarla sakla, herkese açık adresini ver" der:
- * S3 uyumlu her depolama (AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean
- * Spaces …) ya da doğrudan depo (`public/uploads`) kullanılabilir.
+ * Image upload. The panel sends the file to the server; the server validates it
+ * (size, type, the file's real bytes) and hands it to a MediaAdapter. An adapter
+ * only has to "store these bytes under this key and return the public URL":
+ * any S3-compatible storage (AWS S3, Cloudflare R2, MinIO, Backblaze B2,
+ * DigitalOcean Spaces …) or the repository itself (`public/uploads`) will do.
  */
 
 export type MediaFile = { key: string; contentType: string; data: Uint8Array };
@@ -19,16 +19,16 @@ export interface MediaAdapter {
 
 export type MediaConfig = {
   adapter: MediaAdapter;
-  /** Varsayılan 5 MB (Netlify/Vercel işlev gövdesi sınırları ~6 MB). */
+  /** Default 5 MB (Netlify/Vercel function body limits are ~6 MB). */
   maxBytes?: number;
-  /** Varsayılan: png, jpeg, webp, gif, avif. SVG betik taşıyabildiği için açıkça eklenmeli. */
+  /** Default: png, jpeg, webp, gif, avif. SVG can carry scripts, so it must be added deliberately. */
   accept?: string[];
 };
 
 export const DEFAULT_ACCEPT = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"];
 export const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
 
-/* ── Dosya türü: istemcinin söylediğine değil baytlara bakılır ───── */
+/* ── File type: judged by the bytes, not by what the client claims ── */
 
 const EXT: Record<string, string> = {
   "image/png": "png",
@@ -51,7 +51,7 @@ export function sniffImage(b: Uint8Array): string | null {
   return null;
 }
 
-/** SVG içinde betik/olay yok mu? (Savunma amaçlı kaba denetim; güvenilmeyen SVG kabul etme.) */
+/** No script/event handlers inside the SVG? (A coarse, defensive check; do not accept untrusted SVG.) */
 export const svgIsSafe = (b: Uint8Array) =>
   !/<script|javascript:|\son\w+\s*=|<foreignobject|<iframe|<embed|<object/i.test(Buffer.from(b).toString("utf8"));
 
@@ -89,7 +89,7 @@ export type SignInput = {
   date?: Date;
 };
 
-/** İmzalı başlıkları döndürür (x-amz-date, x-amz-content-sha256, authorization dahil). */
+/** Returns the signed headers (including x-amz-date, x-amz-content-sha256, authorization). */
 export function signV4(i: SignInput): Record<string, string> {
   const service = i.service ?? "s3";
   const amzDate = (i.date ?? new Date()).toISOString().replace(/[:-]|\.\d{3}/g, "");
@@ -121,20 +121,20 @@ export function signV4(i: SignInput): Record<string, string> {
   return headers;
 }
 
-/* ── Adapter: S3 uyumlu depolama ───────────────────────────────── */
+/* ── Adapter: S3-compatible storage ────────────────────────────── */
 
 export type S3Options = {
-  /** Örn. https://<hesap>.r2.cloudflarestorage.com, http://localhost:9000 (MinIO). Boşsa AWS. */
+  /** E.g. https://<account>.r2.cloudflarestorage.com, http://localhost:9000 (MinIO). AWS when omitted. */
   endpoint?: string;
   region?: string;
   bucket: string;
   accessKeyId: string;
   secretAccessKey: string;
-  /** Yüklenen dosyaların herkese açık kökü (CDN), örn. https://cdn.example.com */
+  /** Public base URL of uploaded files (CDN), e.g. https://cdn.example.com */
   publicUrl?: string;
-  /** Anahtar öneki, örn. "uploads/". */
+  /** Key prefix, e.g. "uploads/". */
   prefix?: string;
-  /** true (varsayılan): endpoint/bucket/key. false: bucket.endpoint/key (AWS sanal host). */
+  /** true (default): endpoint/bucket/key. false: bucket.endpoint/key (virtual-hosted style). */
   pathStyle?: boolean;
   cacheControl?: string;
 };
@@ -144,7 +144,7 @@ export function s3Media(o: S3Options): MediaAdapter {
   const endpoint = new URL(o.endpoint ?? `https://s3.${region}.amazonaws.com`);
   const pathStyle = o.pathStyle ?? true;
   const prefix = (o.prefix ?? "uploads/").replace(/^\/+/, "");
-  const cache = o.cacheControl ?? "public, max-age=31536000, immutable"; // dosya adı içerik özeti taşıyor: değişmez
+  const cache = o.cacheControl ?? "public, max-age=31536000, immutable"; // the file name carries a random suffix, so the object never changes
 
   return {
     async upload(file) {
@@ -161,17 +161,17 @@ export function s3Media(o: S3Options): MediaAdapter {
         accessKeyId: o.accessKeyId,
         secretAccessKey: o.secretAccessKey,
       });
-      const { host: _host, ...send } = headers; // fetch host başlığını kendi koyar
+      const { host: _host, ...send } = headers; // fetch sets the host header itself
       void _host;
       const res = await fetch(url, { method: "PUT", headers: send, body: Buffer.from(file.data), cache: "no-store" });
-      if (!res.ok) throw new Error(`S3 yükleme başarısız: ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
+      if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
       const base = o.publicUrl?.replace(/\/$/, "");
       return { url: base ? `${base}/${key}` : url.toString() };
     },
   };
 }
 
-/** ZAY_S3_* ortam değişkenlerinden; bucket yoksa null (başka adapter seçilir). */
+/** From ZAY_S3_* environment variables; null when no bucket is set (pick another adapter). */
 export function s3MediaFromEnv(env: Record<string, string | undefined> = process.env): MediaAdapter | null {
   if (!env.ZAY_S3_BUCKET || !env.ZAY_S3_ACCESS_KEY_ID || !env.ZAY_S3_SECRET_ACCESS_KEY) return null;
   return s3Media({
@@ -186,7 +186,7 @@ export function s3MediaFromEnv(env: Record<string, string | undefined> = process
   });
 }
 
-/* ── Adapter: depoya commit (public/uploads) ───────────────────── */
+/* ── Adapter: commit into the repository (public/uploads) ──────── */
 
 export function repoMedia(o: { dir?: string; urlPrefix?: string } = {}): MediaAdapter {
   const dir = (o.dir ?? "public/uploads").replace(/\/$/, "");

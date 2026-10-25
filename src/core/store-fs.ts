@@ -3,11 +3,11 @@ import { dirname, join, normalize, sep } from "node:path";
 
 import type { Change, Store } from "./types";
 
-/** Yerel dosya sistemi: `pnpm dev` ve yerelde panel. Kök dışına çıkış yok. */
+/** Local file system: for `dev` and local panel use. Cannot leave its root. */
 export function fsStore(root: string): Store {
   const abs = (path: string) => {
     const full = normalize(join(root, path));
-    if (full !== root && !full.startsWith(root + sep)) throw new Error(`geçersiz yol: ${path}`);
+    if (full !== root && !full.startsWith(root + sep)) throw new Error(`invalid path: ${path}`);
     return full;
   };
 

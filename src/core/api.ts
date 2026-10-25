@@ -30,7 +30,7 @@ import {
 import { DEFAULT_ACCEPT, DEFAULT_MAX_BYTES, extFor, mediaKey, sniffImage, svgIsSafe } from "./media";
 import { fsStore } from "./store-fs";
 import { githubStore } from "./store-github";
-import { HttpError } from "./types";
+import { HttpError, resolveConfig } from "./types";
 import type { Store, ZayConfig } from "./types";
 
 const json = (data: unknown, init: ResponseInit = {}) =>
@@ -42,10 +42,11 @@ const json = (data: unknown, init: ResponseInit = {}) =>
 const MAX_BODY = 4 * 1024 * 1024;
 
 /**
- * Çerçeveden bağımsız istek işleyicisi: Web `Request` alır, `Response` döner.
- * Next.js, Hono, Express (fetch uyarlayıcıyla) … hepsinde aynı.
+ * Framework-agnostic request handler: takes a Web `Request`, returns a `Response`.
+ * The same code runs under Next.js, Hono, Express (via a fetch adapter) …
  */
-export function createHandler(config: ZayConfig) {
+export function createHandler(input: ZayConfig) {
+  const config = resolveConfig(input);
   const api = config.apiPath.replace(/\/$/, "");
 
   return async function handle(request: Request): Promise<Response> {
@@ -68,9 +69,9 @@ export function createHandler(config: ZayConfig) {
     const secure = origin.startsWith("https:");
     const cookies = parseCookies(request.headers.get("cookie"));
 
-    /* ── Oturum ve giriş (kimlik gerektirmeyen uçlar) ── */
+    /* ── Session and sign-in (endpoints that need no identity) ── */
     if (parts[0] === "auth") {
-      if (mode !== "github") throw new HttpError(400, "GitHub girişi bu kipte kapalı");
+      if (mode !== "github") throw new HttpError(400, "GitHub sign-in is disabled in this mode");
       const redirectUri = `${origin}${api}/auth/callback`;
 
       if (parts[1] === "login" && method === "GET") {
@@ -95,12 +96,12 @@ export function createHandler(config: ZayConfig) {
               ["Set-Cookie", cookie(STATE_COOKIE, "", { secure, maxAge: 0 })],
             ]),
           });
-        if (!code || !cookies[STATE_COOKIE] || !safeEqual(state, cookies[STATE_COOKIE]!)) return home("Giriş doğrulanamadı, tekrar dene.");
+        if (!code || !cookies[STATE_COOKIE] || !safeEqual(state, cookies[STATE_COOKIE]!)) return home("Sign-in could not be verified, please try again.");
 
         const token = await exchangeCode(code, redirectUri);
         const user = await githubUser(token);
-        if (!env.allowed.includes(user.login.toLowerCase())) return home("Bu hesabın panele erişimi yok.");
-        if (config.repo && !(await canPush(token, config.repo))) return home("Bu hesabın depoya yazma yetkisi yok.");
+        if (!env.allowed.includes(user.login.toLowerCase())) return home("This account is not allowed to use the panel.");
+        if (config.repo && !(await canPush(token, config.repo))) return home("This account has no write access to the repository.");
 
         const res = home();
         res.headers.append("Set-Cookie", cookie(SESSION_COOKIE, seal(newSession(user, token), env.sessionSecret!), { secure, maxAge: 8 * 3600 }));
@@ -110,7 +111,7 @@ export function createHandler(config: ZayConfig) {
       if (parts[1] === "logout" && method === "POST") {
         return json({ ok: true }, { headers: { "Set-Cookie": cookie(SESSION_COOKIE, "", { secure, maxAge: 0 }) } });
       }
-      throw new HttpError(404, "bulunamadı");
+      throw new HttpError(404, "not found");
     }
 
     const session: Session | null = mode === "github" ? unseal(cookies[SESSION_COOKIE], env.sessionSecret) : null;
@@ -131,15 +132,15 @@ export function createHandler(config: ZayConfig) {
       });
     }
 
-    /* ── Buradan sonrası kimlik ister ── */
-    if (mode === "unconfigured") throw new HttpError(503, "Panel yapılandırılmadı (ZAY_* ortam değişkenleri).");
-    if (mode === "github" && !session) throw new HttpError(401, "Giriş gerekli");
+    /* ── Everything below requires an identity ── */
+    if (mode === "unconfigured") throw new HttpError(503, "The panel is not configured (ZAY_* environment variables).");
+    if (mode === "github" && !session) throw new HttpError(401, "Sign-in required");
 
     if (method !== "GET") {
-      /* Başka bir sitenin formu/isteği tarayıcıdan bizi çağıramasın: özel başlık + aynı köken. */
-      if (request.headers.get("x-zay-request") !== "1") throw new HttpError(403, "Geçersiz istek");
+      /* Keep other sites from calling us through the browser: custom header + same origin. */
+      if (request.headers.get("x-zay-request") !== "1") throw new HttpError(403, "Invalid request");
       const from = request.headers.get("origin");
-      if (from && from !== url.origin && from !== origin) throw new HttpError(403, "Geçersiz köken");
+      if (from && from !== url.origin && from !== origin) throw new HttpError(403, "Invalid origin");
     }
 
     const store: Store =
@@ -150,31 +151,31 @@ export function createHandler(config: ZayConfig) {
 
     const body = async () => {
       const text = await request.text();
-      if (text.length > MAX_BODY) throw new HttpError(413, "İçerik çok büyük");
+      if (text.length > MAX_BODY) throw new HttpError(413, "Content too large");
       try {
         return JSON.parse(text) as Record<string, unknown>;
       } catch {
-        throw new HttpError(400, "Geçersiz JSON");
+        throw new HttpError(400, "Invalid JSON");
       }
     };
 
     if (parts[0] === "media" && method === "POST") {
       const media = config.media;
-      if (!media) throw new HttpError(404, "Görsel yükleme yapılandırılmamış");
+      if (!media) throw new HttpError(404, "Image upload is not configured");
       const maxBytes = media.maxBytes ?? DEFAULT_MAX_BYTES;
       const accept = media.accept ?? DEFAULT_ACCEPT;
       const declared = Number(request.headers.get("content-length") ?? 0);
-      if (declared > maxBytes + 64 * 1024) throw new HttpError(413, `Dosya çok büyük (en çok ${Math.round(maxBytes / 1024 / 1024)} MB)`);
+      if (declared > maxBytes + 64 * 1024) throw new HttpError(413, `File too large (max ${Math.round(maxBytes / 1024 / 1024)} MB)`);
 
       const form = await request.formData().catch(() => null);
       const file = form?.get("file");
-      if (!file || typeof file === "string") throw new HttpError(400, "Dosya yok");
-      if (file.size > maxBytes) throw new HttpError(413, `Dosya çok büyük (en çok ${Math.round(maxBytes / 1024 / 1024)} MB)`);
+      if (!file || typeof file === "string") throw new HttpError(400, "No file");
+      if (file.size > maxBytes) throw new HttpError(413, `File too large (max ${Math.round(maxBytes / 1024 / 1024)} MB)`);
 
       const data = new Uint8Array(await file.arrayBuffer());
       const type = sniffImage(data);
-      if (!type || !accept.includes(type)) throw new HttpError(415, "Desteklenmeyen dosya türü");
-      if (type === "image/svg+xml" && !svgIsSafe(data)) throw new HttpError(415, "SVG betik içeriyor");
+      if (!type || !accept.includes(type)) throw new HttpError(415, "Unsupported file type");
+      if (type === "image/svg+xml" && !svgIsSafe(data)) throw new HttpError(415, "SVG contains script");
 
       const key = mediaKey(file.name || "image", extFor(type));
       const { url } = await media.adapter.upload({ key, contentType: type, data }, { store });
@@ -186,11 +187,11 @@ export function createHandler(config: ZayConfig) {
         locales: config.locales,
         defaultLocale: config.defaultLocale,
         localeNames: config.localeNames ?? {},
-        groups: config.groups ?? [],
+        groups: config.groups,
         collections: config.collections,
-        singletons: config.singletons ?? {},
+        singletons: config.singletons,
         fileSets: Object.fromEntries(
-          Object.entries(config.fileSets ?? {}).map(([k, v]) => [k, { label: v.label, group: v.group }]),
+          Object.entries(config.fileSets).map(([k, v]) => [k, { label: v.label, group: v.group }]),
         ),
       });
     }
@@ -224,6 +225,6 @@ export function createHandler(config: ZayConfig) {
       }
     }
 
-    throw new HttpError(404, "bulunamadı");
+    throw new HttpError(404, "not found");
   }
 }

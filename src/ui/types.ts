@@ -20,7 +20,7 @@ export type SessionInfo = {
   language: "en" | "tr";
   apiPath: string;
   basePath: string;
-  /** Yükleme açıksa sınırlar; kapalıysa null (yalnız bağlantı yapıştırma). */
+  /** Limits when uploads are enabled; null when disabled (paste-a-link only). */
   media: { maxBytes: number; accept: string[] } | null;
 };
 
@@ -34,14 +34,14 @@ export type EntrySummary = {
 
 export type Docs = Record<string, Record<string, unknown>>;
 
-/** Özel editör sözleşmesi: form yerine/yanında gösterilen, siteye özgü editör. */
+/** Custom editor contract: a site-specific editor shown instead of / next to the form. */
 export type EditorProps = {
   slug: string;
   fields: Fields;
   locales: string[];
   defaultLocale: string;
   localeNames: Record<string, string>;
-  /** Varsayılan dilin belgesi (düz koleksiyonlarda tek belge). */
+  /** The default language's document (the only document in plain collections). */
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
 };

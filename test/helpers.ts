@@ -3,12 +3,13 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { bool, markdown, select, str, text, list, obj } from "../src/schema/dsl.mjs";
-import { defineConfig } from "../src/core/types";
+import { defineConfig, resolveConfig } from "../src/core/types";
 
 export const tmp = () => mkdtemp(join(tmpdir(), "zay-"));
 
 export const config = (root: string) =>
-  defineConfig({
+  resolveConfig(
+    defineConfig({
     root,
     locales: ["tr", "en", "es"],
     defaultLocale: "tr",
@@ -57,4 +58,5 @@ export const config = (root: string) =>
         scan: { dir: "messages/{locale}", path: "messages/{locale}/{name}.json" },
       },
     },
-  });
+  }),
+  );

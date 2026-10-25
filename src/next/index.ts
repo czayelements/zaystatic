@@ -2,7 +2,7 @@ import { createHandler } from "../core/api";
 import type { ZayConfig } from "../core/types";
 
 /**
- * Next.js route handler'ları. `app/api/zay/[...path]/route.ts`:
+ * Next.js route handlers. `app/api/zay/[...path]/route.ts`:
  *
  *   export const runtime = "nodejs";
  *   export const dynamic = "force-dynamic";

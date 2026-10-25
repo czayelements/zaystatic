@@ -1,5 +1,5 @@
-/* zay-static — kendi başına yeten stil. Tüm sınıflar `zs-` önekli; yalnız `.zs-root` içinde etkili.
-   Özelleştirme: --zs-* değişkenlerini `.zs-root` üzerinde ez. */
+/* zay-static — a self-contained stylesheet. Every class is `zs-` prefixed and only takes effect inside `.zs-root`.
+   Customise by overriding the --zs-* variables on `.zs-root`. */
 
 .zs-root {
   --zs-bg: #f6f5f1;
@@ -94,7 +94,7 @@
   font-size: 13px;
 }
 
-/* ── Giriş ─────────────────────────────────────── */
+/* ── Sign-in ─────────────────────────────────────── */
 .zs-login {
   width: min(380px, 100%);
   background: var(--zs-surface);
@@ -111,7 +111,7 @@
   letter-spacing: -0.02em;
 }
 
-/* ── İskelet ───────────────────────────────────── */
+/* ── Shell ───────────────────────────────────── */
 .zs-app {
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
@@ -243,7 +243,7 @@
   padding: 32px 32px 140px;
 }
 
-/* ── Sayfa başlığı ─────────────────────────────── */
+/* ── Page header ─────────────────────────────── */
 .zs-page-head {
   display: flex;
   align-items: flex-end;
@@ -277,7 +277,7 @@
   gap: 8px;
 }
 
-/* ── Düğmeler ──────────────────────────────────── */
+/* ── Buttons ──────────────────────────────────── */
 .zs-btn {
   display: inline-flex;
   align-items: center;
@@ -338,7 +338,7 @@
   text-decoration: underline;
 }
 
-/* ── Liste ve panolar ──────────────────────────── */
+/* ── Lists and cards ──────────────────────────── */
 .zs-toolbar {
   display: flex;
   gap: 10px;
@@ -438,7 +438,7 @@
   color: var(--zs-accent);
 }
 
-/* ── Dil sekmeleri ─────────────────────────────── */
+/* ── Language tabs ─────────────────────────────── */
 .zs-tabs {
   display: flex;
   gap: 4px;
@@ -676,7 +676,7 @@
   letter-spacing: 0.02em;
 }
 
-/* ── Liste elemanları ──────────────────────────── */
+/* ── List items ──────────────────────────── */
 .zs-list {
   display: grid;
   gap: 10px;
@@ -832,7 +832,7 @@
   background: var(--zs-accent-soft);
 }
 
-/* ── Kaydet çubuğu ─────────────────────────────── */
+/* ── Save bar ─────────────────────────────── */
 .zs-savebar {
   position: fixed;
   left: 264px;
@@ -875,7 +875,7 @@
   background: #d99a2b;
 }
 
-/* ── Bildirimler ───────────────────────────────── */
+/* ── Toasts ───────────────────────────────── */
 .zs-toasts {
   position: fixed;
   top: 16px;
@@ -898,7 +898,7 @@
   color: #fff;
 }
 
-/* ── Küçük ekran ───────────────────────────────── */
+/* ── Small screens ───────────────────────────────── */
 @media (max-width: 860px) {
   .zs-app {
     grid-template-columns: minmax(0, 1fr);
@@ -968,7 +968,7 @@
   }
 }
 
-/* Izgara çocukları içeriğe göre genişleyip taşmasın. */
+/* Keep grid children from growing with their content and overflowing. */
 .zs-form > *,
 .zs-list,
 .zs-list-body,
@@ -981,7 +981,7 @@
   overflow-wrap: anywhere;
 }
 
-/* ── Görsel alanı ──────────────────────────────── */
+/* ── Image field ──────────────────────────────── */
 .zs-image {
   display: flex;
   gap: 12px;
@@ -1039,4 +1039,24 @@
   .zs-image-side {
     width: 100%;
   }
+}
+
+/* ── Blocks ───────────────────────────────────── */
+.zs-add-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.zs-add-blocks .zs-add {
+  padding: 0 14px;
+}
+.zs-block-badge {
+  flex: 0 0 auto;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--zs-accent-soft);
+  color: var(--zs-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }

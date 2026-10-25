@@ -1,19 +1,27 @@
 export type FieldType =
   | "string" | "text" | "markdown" | "image" | "int" | "bool" | "select"
-  | "date" | "datetime" | "relation" | "relations" | "list" | "object";
+  | "date" | "datetime" | "relation" | "relations" | "list" | "object" | "blocks";
 
 export interface SelectOption { label: string; value: string }
+
+export interface BlockType {
+  label: string;
+  hint?: string;
+  fields: Fields;
+  /** Template for the collapsed row title, e.g. "{{title}}". */
+  summary?: string;
+}
 
 export interface Field {
   type: FieldType;
   label: string;
   hint?: string;
   default?: unknown;
-  /** "translate": alan her dil dosyasında kendi değeriyle durur. */
+  /** "translate": the field lives in every language file with its own value. */
   i18n?: "translate";
-  /** list/object için: panel özet şablonu, örn. "{{fields.title.tr}}". */
+  /** For list/object: panel summary template, e.g. "{{fields.title.tr}}". */
   summary?: string;
-  /** object: alt alanlar yan yana tek satırda gösterilir (örn. {tr,en,es,de}). */
+  /** object: sub-fields are shown side by side in one row (e.g. {tr,en,es,de}). */
   inline?: boolean;
   pattern?: string;
   min?: number | null;
@@ -22,6 +30,8 @@ export interface Field {
   collection?: string;
   item?: Field;
   fields?: Record<string, Field>;
+  /** blocks: type name → block definition. */
+  blocks?: Record<string, BlockType>;
 }
 
 export type Fields = Record<string, Field>;
@@ -40,6 +50,8 @@ export function relation(label: string, collection: string, o?: Opts): Field;
 export function relations(label: string, collection: string, o?: Opts): Field;
 export function list(label: string, item: Field, o?: Opts): Field;
 export function obj(label: string, fields: Fields, o?: Opts): Field;
+export function block(label: string, fields: Fields, o?: Partial<BlockType>): BlockType;
+export function blocks(label: string, types: Record<string, BlockType>, o?: Opts): Field;
 export function strList(label: string, itemLabel?: string, o?: Opts): Field;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- normalize() returns the shape the schema describes */

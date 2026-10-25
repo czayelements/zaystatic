@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
 
-import type { ZayConfig } from "./types";
+import type { ResolvedConfig, ZayConfig } from "./types";
 
 export type Session = { login: string; name?: string; avatar?: string; token: string; exp: number };
 export type Mode = "local" | "github" | "unconfigured";
@@ -23,10 +23,11 @@ export const oauthEnv = (env: Env = process.env) => ({
 });
 
 /**
- * Çalışma kipi:
- *  - ZAY_MODE=local  → yerel dosyalar, giriş yok (yalnız kendi makinen için)
- *  - ZAY_MODE=github → GitHub girişi + depoya commit
- *  - boşsa: geliştirmede local; üretimde GitHub ayarları tamamsa github, değilse kapalı
+ * Run mode:
+ *  - ZAY_MODE=local  → local files, no sign-in (for your own machine only)
+ *  - ZAY_MODE=github → GitHub sign-in + commits to the repository
+ *  - unset: local in development; in production github when the GitHub
+ *    settings are complete, otherwise closed
  */
 export function resolveMode(config: ZayConfig, env: Env = process.env): Mode {
   const forced = env.ZAY_MODE;
@@ -38,7 +39,7 @@ export function resolveMode(config: ZayConfig, env: Env = process.env): Mode {
   return ready ? "github" : "unconfigured";
 }
 
-/* ── Çerez: AES-256-GCM ile mühürlü oturum ─────────────────────── */
+/* ── Cookie: session sealed with AES-256-GCM ──────────────────── */
 
 const key = (secret: string) => createHash("sha256").update(`zay-static:${secret}`).digest();
 
@@ -111,7 +112,7 @@ export async function exchangeCode(code: string, redirectUri: string, env: Env =
     body: JSON.stringify({ client_id: o.clientId, client_secret: o.clientSecret, code, redirect_uri: redirectUri }),
   });
   const data = (await res.json()) as { access_token?: string; error_description?: string };
-  if (!data.access_token) throw new Error(data.error_description ?? "GitHub girişi tamamlanamadı");
+  if (!data.access_token) throw new Error(data.error_description ?? "GitHub sign-in could not be completed");
   return data.access_token;
 }
 
@@ -120,7 +121,7 @@ export async function githubUser(token: string) {
     cache: "no-store",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" },
   });
-  if (!res.ok) throw new Error("GitHub kullanıcısı alınamadı");
+  if (!res.ok) throw new Error("Could not fetch the GitHub user");
   const u = (await res.json()) as { login: string; name?: string; avatar_url?: string };
   return { login: u.login, name: u.name ?? undefined, avatar: u.avatar_url };
 }

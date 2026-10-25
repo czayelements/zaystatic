@@ -17,10 +17,10 @@ type Ctx = {
   t: Messages;
   basePath: string;
   editors: EditorMap;
-  /** Taban yola göre geçerli yol, örn. "/c/blog/yazi". */
+  /** Current path relative to the base path, e.g. "/c/blog/my-post". */
   path: string;
   navigate: (to: string, opts?: { replace?: boolean }) => void;
-  /** Sayfa kaydedilmemiş değişiklik taşıyorsa true döndüren bekçi. */
+  /** Guard that returns true when the page holds unsaved changes. */
   setGuard: (fn: (() => boolean) | null) => void;
   toast: (kind: Toast["kind"], text: string) => void;
   refreshSchema: () => void;
@@ -118,7 +118,7 @@ export function ZayProvider({
   );
 }
 
-/** Panel içi bağlantı: sayfa yenilemeden gider, kaydedilmemiş değişiklikte sorar. */
+/** In-panel link: navigates without a page reload and asks on unsaved changes. */
 export function Link({
   to,
   children,
