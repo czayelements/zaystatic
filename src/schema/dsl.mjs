@@ -104,21 +104,60 @@ export const defaults = (fields) => normalize(obj("", fields), {});
 /* ── Locale file schema: translatable fields only ───────────────── */
 
 /**
- * The sub-schema of fields marked `i18n: "translate"`. In lists and objects
- * only the translatable sub-fields remain (e.g. gallery → only `alt`).
+ * The sub-schema that gets translated.
+ *
+ * With `paths` (the collection's `i18n.fields`) the listed fields are kept; a dotted path
+ * reaches into an object, a list of objects or the block types ("gallery.alt" keeps only
+ * `alt` of every gallery item). Without `paths`, fields marked `i18n: "translate"` are kept
+ * (the per-field shorthand), with the same nesting rules.
  */
-export function translatableFields(fields) {
+export function translatableFields(fields, paths) {
+  if (paths) return pickPaths(fields, paths);
+  return markedFields(fields);
+}
+
+function markedFields(fields) {
   const out = {};
   for (const [key, f] of Object.entries(fields)) {
     if (f.i18n !== "translate") continue;
-    if (f.type === "object") out[key] = { ...f, fields: translatableFields(f.fields) };
+    if (f.type === "object") out[key] = { ...f, fields: markedFields(f.fields) };
     else if (f.type === "blocks")
       out[key] = {
         ...f,
-        blocks: Object.fromEntries(Object.entries(f.blocks).map(([name, b]) => [name, { ...b, fields: translatableFields(b.fields) }])),
+        blocks: Object.fromEntries(Object.entries(f.blocks).map(([name, b]) => [name, { ...b, fields: markedFields(b.fields) }])),
       };
     else if (f.type === "list" && f.item.type === "object")
-      out[key] = { ...f, item: { ...f.item, fields: translatableFields(f.item.fields) } };
+      out[key] = { ...f, item: { ...f.item, fields: markedFields(f.item.fields) } };
+    else out[key] = f;
+  }
+  return out;
+}
+
+/** "a", "b.c", "b.d" -> { a: null (whole field), b: ["c", "d"] } */
+function groupPaths(paths) {
+  const tree = {};
+  for (const p of paths) {
+    const [head, ...rest] = p.split(".");
+    if (!rest.length) tree[head] = null;
+    else if (tree[head] !== null) (tree[head] ??= []).push(rest.join("."));
+  }
+  return tree;
+}
+
+function pickPaths(fields, paths) {
+  const tree = groupPaths(paths);
+  const out = {};
+  for (const [key, f] of Object.entries(fields)) {
+    if (!(key in tree)) continue;
+    const sub = tree[key];
+    if (sub === null) out[key] = f;
+    else if (f.type === "object") out[key] = { ...f, fields: pickPaths(f.fields, sub) };
+    else if (f.type === "list" && f.item.type === "object") out[key] = { ...f, item: { ...f.item, fields: pickPaths(f.item.fields, sub) } };
+    else if (f.type === "blocks")
+      out[key] = {
+        ...f,
+        blocks: Object.fromEntries(Object.entries(f.blocks).map(([name, b]) => [name, { ...b, fields: pickPaths(b.fields, sub) }])),
+      };
     else out[key] = f;
   }
   return out;

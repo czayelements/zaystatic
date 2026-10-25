@@ -156,7 +156,7 @@ test("singletons and file-set files get their own drafts", async () => {
     const s = await call("PUT", "/singletons/settings", { doc: { title: "Hi" } });
     assert.equal(s.data.draft.number, 1);
     assert.ok(gh.branches["zay/s/settings"]);
-    assert.equal((await call("GET", "/singletons/settings")).data.doc.title, "Hi");
+    assert.equal((await call("GET", "/singletons/settings")).data.docs.tr.title, "Hi");
   } finally {
     gh.close();
   }

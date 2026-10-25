@@ -1,6 +1,9 @@
 import type { Fields } from "../schema/dsl.mjs";
 import type { Label } from "./i18n";
 import type { PanelLanguage } from "./languages";
+import type { I18nOption } from "./translation";
+
+export type { I18nOption };
 import type { MediaConfig } from "./media";
 
 export type { Label };
@@ -12,13 +15,17 @@ export type Collection = {
   /** Folder relative to the repository root, e.g. "content/blog". */
   dir: string;
   /**
-   * "plain":   `<slug>.json` — one file, one entry.
-   * "locales": `<slug>.<locale>.<ext>` — one file per language; the default
-   *            language's file carries every field, the others only the
-   *            fields marked `i18n: "translate"`.
+   * @deprecated Use `i18n`. `"locales"` means `i18n: true`; `"plain"` (or omitted) means no translation.
    */
-  layout: "plain" | "locales";
-  /** "locales" only: file extension. "mdx" → YAML frontmatter + body. */
+  layout?: "plain" | "locales";
+  /**
+   * Translate this collection's content. Off by default. When on, every entry is one file per
+   * language (`<slug>.<locale>.<ext>`): the default language's file carries every field, the
+   * others only the translated ones, which are the listed `fields` (dotted paths reach into
+   * nested fields: `"gallery.alt"`), else the fields marked `i18n: "translate"`, else the text fields.
+   */
+  i18n?: I18nOption;
+  /** File format: "json" (default) or "mdx" (YAML frontmatter + body). */
   ext?: "json" | "mdx";
   /** Field shown as the title in lists. */
   identifier: string;
@@ -35,6 +42,8 @@ export type Collection = {
 
 /** Single-file content (settings, menus …). */
 export type Singleton = {
+  /** Translate this single file (stored as `<name>.<locale>.json`); see Collection.i18n. */
+  i18n?: I18nOption;
   label: Label;
   file: string;
   fields: Fields;

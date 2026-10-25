@@ -78,7 +78,8 @@ export function strList(label: Label, itemLabel?: string, o?: Opts): Field;
 export function normalize(desc: Field, raw: unknown): any;
 export function defaults(fields: Fields): any;
 /* eslint-enable @typescript-eslint/no-explicit-any */
-export function translatableFields(fields: Fields): Fields;
+/** Fields to translate: `paths` (the collection's `i18n.fields`, dotted into nested fields) or, without it, the `i18n: "translate"` markers. */
+export function translatableFields(fields: Fields, paths?: string[]): Fields;
 export function fieldsFromSample(sample: unknown, opts?: { longText?: (v: string) => boolean }): Fields;
 export function isEmptyValue(v: unknown): boolean;
 

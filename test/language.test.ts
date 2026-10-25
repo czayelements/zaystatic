@@ -29,7 +29,7 @@ const schemaConfig = () =>
       groups: [{ id: "g", label: { en: "Content", de: "Inhalt" } }],
       collections: {
         posts: defineCollection({
-          label: { en: "Posts", de: "Beiträge" }, group: "g", dir: "c", layout: "plain", identifier: "title",
+          label: { en: "Posts", de: "Beiträge" }, group: "g", dir: "c", identifier: "title",
           fields: {
             title: str({ en: "Title", de: "Titel" }, { hint: { en: "Shown in lists", de: "In Listen sichtbar" }, pattern: ["^a", { en: "Start with a", de: "Mit a beginnen" }] }),
             kind: select({ en: "Kind", de: "Art" }, [{ label: { en: "News", de: "Neuigkeit" }, value: "news" }], "news"),

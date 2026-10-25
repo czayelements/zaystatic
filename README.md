@@ -64,24 +64,26 @@ export default defineSchema({
   collections: {
     posts: defineCollection({
       label: "Posts", group: "content",
-      dir: "content/posts", layout: "locales", ext: "mdx", identifier: "title",
+      dir: "content/posts", ext: "mdx", identifier: "title",
+      i18n: { enabled: true, fields: ["title", "body"] }, // translate these; everything else stays in the default language
       summary: "{{title}} · {{status}}",
       sort: { field: "publishedAt", order: "desc" },
       fields: {
-        title: str("Title", { i18n: "translate" }),
+        title: str("Title"),
         status: select("Status", [{ label: "Draft", value: "draft" }, { label: "Live", value: "live" }], "draft"),
         cover: image("Cover"),
-        body: markdown("Body", { i18n: "translate" }),
+        body: markdown("Body"),
       },
     }),
   },
   singletons: {
     home: defineSingleton({
       label: "Home page", group: "site", file: "content/home.json",
+      i18n: { fields: ["sections.title", "sections.body"] }, // dotted paths reach into blocks, lists and objects
       fields: {
         sections: blocks("Sections", {
-          hero: block("Hero", { title: str("Title", { i18n: "translate" }), image: image("Image") }),
-          text: block("Text", { body: markdown("Body", { i18n: "translate" }) }),
+          hero: block("Hero", { title: str("Title"), image: image("Image") }),
+          text: block("Text", { body: markdown("Body") }),
         }),
       },
     }),
@@ -185,16 +187,27 @@ Three **content kinds**, each with a definition helper:
 
 | kind | helper | stored as | typical use |
 | --- | --- | --- | --- |
-| collection | `defineCollection` | one file per entry, in a folder | posts, products, team members |
-| singleton | `defineSingleton` | one file | site settings, a home page, navigation |
+| collection | `defineCollection` | one file per entry (per language when `i18n` is on), in a folder | posts, products, team members |
+| singleton | `defineSingleton` | one file (per language when `i18n` is on) | site settings, a home page, navigation |
 | file set | `defineFileSet` | the same JSON shape in every language | UI strings (`messages/<locale>/*.json`) |
 
-A collection's `layout`:
+### Translating content (`i18n`)
 
-| `layout` | files | notes |
-| --- | --- | --- |
-| `plain` | `<slug>.json` | one file, one entry |
-| `locales` | `<slug>.<locale>.json` or `.mdx` | default locale carries all fields; the others only fields marked `i18n: "translate"`. Empty translations are deleted, never written. |
+Content translation is a setting of each collection **and each singleton**, independent of the file format:
+
+```ts
+i18n: false                                              // default: one file, one language (<slug>.json)
+i18n: true                                               // translate the text fields
+i18n: { enabled: true, fields: ["title", "body", "gallery.alt"] }   // translate exactly these
+```
+
+When it is on, every entry is stored as one file per language (`<slug>.<locale>.json` or `.mdx`; a singleton becomes
+`<name>.<locale>.json`). The default language's file carries every field; the other languages carry only the **chosen
+fields**, and the panel shows only those when you switch language tabs. A dotted path reaches into an object, a list of
+objects, or every block type (`"gallery.alt"` translates only `alt` of each gallery item). Without a `fields` list the
+per-field shorthand `i18n: "translate"` is used, and without that every top-level text field. Unknown field names in `fields`
+throw at startup. Empty translations are deleted, never written. `ext` (`"json"` default, or `"mdx"`) works with or without
+translation. (`layout: "locales"` from earlier versions still works as `i18n: true`.)
 
 `mdx` entries are YAML frontmatter plus the body (the single `markdown` field). A file set
 needs no schema: its form is derived from the default-language file.
@@ -218,7 +231,7 @@ Every field has a type, and every type has its own editor.
 | list | `list` | **drag-and-drop**, collapsible, duplicate, delete | array |
 | blocks | `blocks` + `block` | **drag-and-drop** list of *typed* items; pick a type to add | `[{ _type, ...fields }]` |
 
-Options common to all: `hint`, `default`, `i18n: "translate"`. Lists, objects and blocks take
+Options common to all: `hint`, `default`, `required` and the other [validation](#validation) rules, and the shorthand `i18n: "translate"` (see above). Lists, objects and blocks take
 `summary: "{{fields.title}}"` for the collapsed row title. Structural changes to a list or blocks
 field in the default language (add, remove, move, duplicate) are mirrored into the translations,
 which stay position-aligned.
@@ -295,7 +308,7 @@ the package, see [ROADMAP.md](ROADMAP.md#panel-languages).
 
 ## Localisation
 
-`locales` and `defaultLocale` in the settings; `layout: "locales"` on a collection. Each
+`locales` and `defaultLocale` in the settings; `i18n` on a collection or singleton. Each
 language tab shows the default-language text under every translatable field, and "Copy from
 default" pre-fills a tab. Missing translations are simply absent files, which your site can
 treat as "not translated yet".

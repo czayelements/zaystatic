@@ -57,7 +57,7 @@ const setup = async () => {
       apiPath: "/api",
       collections: {
         posts: defineCollection({
-          label: "Posts", dir: "content/posts", layout: "locales", ext: "json", identifier: "title",
+          label: "Posts", dir: "content/posts", i18n: true, ext: "json", identifier: "title",
           fields: {
             title: str("Title", { i18n: "translate", maxLength: 10 }),
             summary: str("Summary", { i18n: "translate", required: true }),
@@ -93,6 +93,6 @@ test("translations may be partial (required is default-language only) but filled
 test("the identifier is always required; singletons are validated too", async () => {
   const { ctx } = await setup();
   await assert.rejects(writeEntry(ctx, "posts", "c", { tr: { title: " ", summary: "S" } }, { create: true }), (e: unknown) => (e as HttpError).issues!.some((i) => i.path[0] === "title" && i.code === "required"));
-  await assert.rejects(writeSingleton(ctx, "site", { name: "" }), (e: unknown) => (e as HttpError).status === 422);
-  await writeSingleton(ctx, "site", { name: "ok" });
+  await assert.rejects(writeSingleton(ctx, "site", { tr: { name: "" } }), (e: unknown) => (e as HttpError).status === 422);
+  await writeSingleton(ctx, "site", { tr: { name: "ok" } });
 });

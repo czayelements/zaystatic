@@ -24,6 +24,7 @@ src/
                               user build scripts import it as "zay-static/schema".
   core/types.ts               Config/Schema/Collection/Singleton/FileSet/Store types, defineX helpers,
                               resolveConfig(), HttpError.
+  core/translation.ts         i18n setting: isI18n(), translatableOf() (explicit paths, markers, text-field default).
   core/content.ts             Content engine: list/read/write/delete entries, singletons, file sets,
                               validation on write, commitChanges() (no empty commits).
   core/serialize.ts           parse/serialize JSON and MDX (YAML frontmatter + body).
@@ -56,8 +57,8 @@ pnpm build       # tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prep
 ```
 
 ### Invariants. Do not break these
-1. **On-disk format is the user's data.** `<slug>.json`, `<slug>.<locale>.json|mdx`. Non-default locale files hold
-   only fields marked `i18n: "translate"`; empty translations are deleted, never written. MDX = YAML frontmatter + body.
+1. **On-disk format is the user's data.** `<slug>.<ext>`, or `<slug>.<locale>.<ext>` when the collection/singleton has `i18n` on. Non-default locale files hold
+   only the translated fields (`i18n.fields`, else `i18n: "translate"` markers, else text fields); empty translations are deleted, never written. MDX = YAML frontmatter + body.
 2. **Translations are position-aligned.** Lists and blocks in translation files line up by index with the default
    language. The UI locks structure in translation tabs and mirrors default-language add/remove/move/duplicate
    (`applyListOp` in `ui/form.tsx`, `ListOpProvider`).
@@ -97,12 +98,12 @@ repo) and change the dependency spec. `main` of the site still has the older in-
 
 **Content model**: schema in code (`defineSchema`, `defineCollection`, `defineSingleton`, `defineFileSet`); settings and schema in
 separate files; field types (text, long text, markdown, image, number, boolean, select, date, datetime, relation(s), object, list,
-blocks); collections (plain or per-locale), singletons, file sets; shared `normalize`/`validateDoc`.
+blocks); collections and singletons (translation is a per-collection/per-singleton `i18n: { enabled, fields }` setting, not a layout), file sets; shared `normalize`/`validateDoc`.
 
 **Validation**: `required`, `minLength`, `maxLength`, `pattern` (string or `[regex, message]`), `min`, `max`, `minItems`, `maxItems`.
 Server rejects with 422 + issues; panel shows messages under fields, marks tabs and collapsed rows, blocks saving.
 
-**Localisation of content**: one file per language, language tabs, source text under every translatable field, copy from default,
+**Localisation of content**: per-collection / per-singleton `i18n` setting, one file per language, language tabs, source text under every translatable field, copy from default,
 structure mirrored into translations.
 
 **Media**: paste a link or upload (picker, drop, paste) with preview; S3-compatible adapter with built-in SigV4 (upload, list,

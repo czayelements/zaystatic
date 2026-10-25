@@ -1,8 +1,9 @@
-import { fieldsFromSample, isEmptyValue, normalize, obj, translatableFields, validateDoc } from "../schema/dsl.mjs";
+import { fieldsFromSample, isEmptyValue, normalize, obj, validateDoc } from "../schema/dsl.mjs";
 import type { Field, Fields } from "../schema/dsl.mjs";
 import { parseDoc, serializeDoc } from "./serialize";
+import { isI18n, translatableOf } from "./translation";
 import { HttpError } from "./types";
-import type { Change, Collection, FileSet, FileSetFile, ResolvedConfig, Store } from "./types";
+import type { Change, Collection, FileSet, FileSetFile, ResolvedConfig, Singleton, Store } from "./types";
 
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -23,7 +24,8 @@ type Row = EntrySummary & { _sort?: unknown };
 
 export type EntryData = {
   slug: string;
-  layout: "plain" | "locales";
+  /** Whether the entry is translated (one file per language). */
+  i18n: boolean;
   /** Language → that language's document (completed from the schema). */
   docs: Record<string, Record<string, unknown>>;
   /** Languages whose file exists in the store. */
@@ -37,7 +39,10 @@ const collectionOf = (config: ResolvedConfig, name: string): Collection => {
 };
 
 const bodyKeyOf = (fields: Fields) => Object.entries(fields).find(([, f]) => f.type === "markdown")?.[0] ?? "body";
-const ext = (c: Collection) => (c.layout === "locales" ? (c.ext ?? "json") : "json");
+const ext = (c: Collection) => c.ext ?? "json";
+const localesOf = (config: ResolvedConfig, c: Collection) => (isI18n(c) ? config.locales : [config.defaultLocale]);
+/** The fields a language document holds: everything in the default language, the chosen subset elsewhere. */
+const fieldsOfLocale = (config: ResolvedConfig, c: Collection, locale: string) => (locale === config.defaultLocale ? c.fields : translatableOf(c));
 
 /** Fills `{{a.b}}` placeholders from the document. */
 export function renderTemplate(tpl: string, data: unknown): string {
@@ -84,9 +89,10 @@ async function commitChanges(store: Store, changes: Change[], message: string) {
 
 function slugsOf(config: ResolvedConfig, c: Collection, files: string[]) {
   const e = ext(c);
-  if (c.layout === "plain") {
+  if (!isI18n(c)) {
+    const tail = `.${e}`;
     return new Map<string, string[]>(
-      files.filter((f) => f.endsWith(".json")).map((f): [string, string[]] => [f.slice(0, -5), [config.defaultLocale]]),
+      files.filter((f) => f.endsWith(tail)).map((f): [string, string[]] => [f.slice(0, -tail.length), [config.defaultLocale]]),
     );
   }
   const re = new RegExp(`^(.+)\\.(${config.locales.map(escapeRe).join("|")})\\.${e}$`);
@@ -100,7 +106,7 @@ function slugsOf(config: ResolvedConfig, c: Collection, files: string[]) {
 }
 
 const fileName = (config: ResolvedConfig, c: Collection, slug: string, locale: string) =>
-  c.layout === "plain" ? `${slug}.json` : `${slug}.${locale}.${ext(c)}`;
+  isI18n(c) ? `${slug}.${locale}.${ext(c)}` : `${slug}.${ext(c)}`;
 
 export async function listEntries({ config, store }: Ctx, name: string): Promise<EntrySummary[]> {
   const c = collectionOf(config, name);
@@ -161,9 +167,8 @@ export async function readEntry({ config, store }: Ctx, name: string, slug: stri
 
   const bodyKey = bodyKeyOf(c.fields);
   const docs: EntryData["docs"] = {};
-  const locales = c.layout === "plain" ? [config.defaultLocale] : config.locales;
-  for (const locale of locales) {
-    const fields = locale === config.defaultLocale ? c.fields : translatableFields(c.fields);
+  for (const locale of localesOf(config, c)) {
+    const fields = fieldsOfLocale(config, c, locale);
     let raw: Record<string, unknown> = {};
     if (existing.includes(locale)) {
       const path = `${c.dir}/${fileName(config, c, slug, locale)}`;
@@ -172,7 +177,7 @@ export async function readEntry({ config, store }: Ctx, name: string, slug: stri
     }
     docs[locale] = normalize(obj("", fields), raw);
   }
-  return { slug, layout: c.layout, docs, existing };
+  return { slug, i18n: isI18n(c), docs, existing };
 }
 
 export async function writeEntry(
@@ -192,11 +197,10 @@ export async function writeEntry(
 
   const bodyKey = bodyKeyOf(c.fields);
   const changes: Change[] = [];
-  const locales = c.layout === "plain" ? [def] : config.locales;
   const issues: ValidationIssue[] = [];
 
-  for (const locale of locales) {
-    const fields = locale === def ? c.fields : translatableFields(c.fields);
+  for (const locale of localesOf(config, c)) {
+    const fields = fieldsOfLocale(config, c, locale);
     const doc = normalize(obj("", fields), docs[locale]) as Record<string, unknown>;
     const path = `${c.dir}/${fileName(config, c, slug, locale)}`;
 
@@ -243,19 +247,43 @@ const singletonOf = (config: ResolvedConfig, name: string) => {
   return s;
 };
 
+/** `content/home.json` -> `content/home.de.json` when the singleton is translated. */
+const singletonFile = (s: Singleton, locale: string, translated: boolean) => (translated ? s.file.replace(/(\.[^./]+)$/, `.${locale}$1`) : s.file);
+
 export async function readSingleton({ config, store }: Ctx, name: string) {
   const s = singletonOf(config, name);
-  const text = await store.read(s.file);
-  const raw = text == null ? {} : parseDoc(text, "json", "body", s.file);
-  return { doc: normalize(obj("", s.fields), raw) as Record<string, unknown>, exists: text != null };
+  const translated = isI18n(s);
+  const docs: Record<string, Record<string, unknown>> = {};
+  let exists = false;
+  for (const locale of translated ? config.locales : [config.defaultLocale]) {
+    const path = singletonFile(s, locale, translated);
+    const text = await store.read(path);
+    if (locale === config.defaultLocale) exists = text != null;
+    const fields = locale === config.defaultLocale ? s.fields : translatableOf(s);
+    docs[locale] = normalize(obj("", fields), text == null ? {} : parseDoc(text, "json", "body", path)) as Record<string, unknown>;
+  }
+  return { i18n: translated, docs, exists };
 }
 
-export async function writeSingleton({ config, store }: Ctx, name: string, doc: unknown) {
+export async function writeSingleton({ config, store }: Ctx, name: string, docs: Record<string, unknown>) {
   const s = singletonOf(config, name);
-  const data = normalize(obj("", s.fields), doc) as Record<string, unknown>;
-  const issues = issuesOf(s.fields, data, config.defaultLocale, true);
+  const translated = isI18n(s);
+  const def = config.defaultLocale;
+  const changes: Change[] = [];
+  const issues: ValidationIssue[] = [];
+  for (const locale of translated ? config.locales : [def]) {
+    const fields = locale === def ? s.fields : translatableOf(s);
+    const doc = normalize(obj("", fields), docs[locale]) as Record<string, unknown>;
+    const path = singletonFile(s, locale, translated);
+    if (locale !== def && isEmptyValue(doc)) {
+      if ((await store.read(path)) != null) changes.push({ path, content: null });
+      continue;
+    }
+    issues.push(...issuesOf(fields, doc, locale, locale === def));
+    changes.push({ path, content: serializeDoc(doc, "json", "body") });
+  }
   if (issues.length) failValidation(issues);
-  return commitChanges(store, [{ path: s.file, content: serializeDoc(data, "json", "body") }], `content(${name}): update`);
+  return commitChanges(store, changes, `content(${name}): update`);
 }
 
 /* ── File sets (UI strings) ─────────────────────────────────────── */

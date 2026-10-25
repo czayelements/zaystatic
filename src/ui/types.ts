@@ -2,7 +2,13 @@ import type { Fields } from "../schema/dsl.mjs";
 import type { Collection, Singleton } from "../core/types";
 
 /** The server resolves every label to the panel's language before sending the schema. */
-type Resolved<T> = Omit<T, "label"> & { label: string };
+type Resolved<T> = Omit<T, "label" | "i18n"> & {
+  label: string;
+  /** Is the content translated (one file per language)? */
+  i18n: boolean;
+  /** The fields the non-default language tabs show, when translation is on. */
+  i18nFields?: Fields;
+};
 
 export type Schema = {
   locales: string[];

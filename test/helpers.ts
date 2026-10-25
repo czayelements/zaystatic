@@ -19,7 +19,7 @@ export const config = (root: string) =>
       posts: {
         label: "Posts",
         dir: "content/posts",
-        layout: "locales",
+        i18n: true, // marked fields (title, tags, body)
         ext: "mdx",
         identifier: "title",
         summary: "{{title}} · {{status}}",
@@ -33,20 +33,19 @@ export const config = (root: string) =>
       people: {
         label: "People",
         dir: "content/people",
-        layout: "plain",
         identifier: "name",
         fields: { name: str("Name"), bio: text("Bio"), isPublished: bool("Published", true) },
       },
       items: {
         label: "Items",
         dir: "content/items",
-        layout: "locales",
+        i18n: { enabled: true, fields: ["title", "links.label"] }, // explicit list, dotted into the list items
         ext: "json",
         identifier: "title",
         fields: {
-          title: str("Title", { i18n: "translate" }),
+          title: str("Title"),
           price: str("Price"),
-          links: list("Links", obj("", { label: str("Label", { i18n: "translate" }), href: str("Href") }), { i18n: "translate" }),
+          links: list("Links", obj("", { label: str("Label"), href: str("Href") })),
         },
       },
     },

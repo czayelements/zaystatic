@@ -275,7 +275,12 @@ export function createHandler(input: ZayConfig) {
       const st = storeFor({ kind: "s", name: parts[1] });
       const c = { config, store: st };
       if (method === "GET") return json(await withDraft(st, await readSingleton(c, parts[1])));
-      if (method === "PUT") return json({ ok: true, ...(await writeSingleton(c, parts[1], (await body()).doc)) });
+      if (method === "PUT") {
+        const b = await body();
+        /* `docs` is one document per language; a lone `doc` is accepted for the default language. */
+        const docs = (b.docs ?? { [config.defaultLocale]: b.doc }) as Record<string, unknown>;
+        return json({ ok: true, ...(await writeSingleton(c, parts[1], docs)) });
+      }
     }
 
     if (parts[0] === "filesets" && parts[1]) {

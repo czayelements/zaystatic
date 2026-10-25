@@ -18,7 +18,7 @@ const setup = async () => {
 const rejects = (p: Promise<unknown>, status: number) =>
   assert.rejects(p, (e: unknown) => e instanceof HttpError && e.status === status);
 
-test("locales layout: one file per filled language, empty ones are not written", async () => {
+test("i18n on: one file per filled language, empty ones are not written", async () => {
   const { root, ctx } = await setup();
   const res = await writeEntry(ctx, "posts", "hello", {
     tr: { title: "Merhaba", status: "live", tags: ["a", "b"], body: "# Selam\n\nMetin" },
@@ -110,8 +110,8 @@ test("delete removes every language file", async () => {
 test("singletons", async () => {
   const { ctx } = await setup();
   assert.deepEqual((await readSingleton(ctx, "settings")).exists, false);
-  await writeSingleton(ctx, "settings", { title: "Site" });
-  assert.equal((await readSingleton(ctx, "settings")).doc.title, "Site");
+  await writeSingleton(ctx, "settings", { tr: { title: "Site" } });
+  assert.equal((await readSingleton(ctx, "settings")).docs.tr!.title, "Site");
 });
 
 test("file sets: structure comes from the default-language file", async () => {

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { normalize, obj, translatableFields } from "../schema/dsl.mjs";
+import { normalize, obj } from "../schema/dsl.mjs";
 import type { BlockType, Field, Fields } from "../schema/dsl.mjs";
 import { Link, useZay } from "./context";
 import { Form, ListOpProvider, applyListOp } from "./form";
@@ -95,7 +95,7 @@ export function CollectionView({ name }: { name: string }) {
   const known = new Set((data?.entries ?? []).map((e) => e.slug));
   const draftOnly: EntrySummary[] = [...drafts].filter((s) => !known.has(s)).map((s) => ({ slug: s, title: s, summary: t.draftOnly, locales: [] }));
   const rows = [...draftOnly, ...(data?.entries ?? [])].filter((e) => !q.trim() || `${e.title} ${e.slug} ${e.summary}`.toLowerCase().includes(q.trim().toLowerCase()));
-  const localized = col.layout === "locales";
+  const localized = col.i18n;
 
   return (
     <>
@@ -148,10 +148,11 @@ export function CollectionView({ name }: { name: string }) {
 
 /* ── Entry editor ───────────────────────────────────────────────── */
 
-const blankDocs = (fields: Fields, locales: string[], def: string, localized: boolean): Docs => {
+/** Empty documents for a new entry: every field in the default language, only the translated ones elsewhere. */
+const blankDocs = (fields: Fields, translated: Fields | undefined, locales: string[], def: string): Docs => {
   const docs: Docs = {};
-  for (const l of localized ? locales : [def]) {
-    docs[l] = normalize(obj("", l === def ? fields : translatableFields(fields)), undefined) as Record<string, unknown>;
+  for (const l of translated ? locales : [def]) {
+    docs[l] = normalize(obj("", l === def ? fields : (translated ?? {})), undefined) as Record<string, unknown>;
   }
   return docs;
 };
@@ -178,11 +179,11 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const col = schema.collections[name];
   const isNew = slug === "_new";
   const def = schema.defaultLocale;
-  const localized = col?.layout === "locales";
+  const localized = Boolean(col?.i18n);
   const Editor = col?.editor ? editors[col.editor] : undefined;
 
   /* The panel remounts this component for every entry (key), so the initial state is one-shot. */
-  const initial = isNew && col ? blankDocs(col.fields, schema.locales, def, localized) : null;
+  const initial = isNew && col ? blankDocs(col.fields, col.i18n ? col.i18nFields : undefined, schema.locales, def) : null;
   const [docs, setDocs] = React.useState<Docs | null>(initial);
   const [saved, setSaved] = React.useState<string | null>(initial ? JSON.stringify(initial) : null);
   const [error, setError] = React.useState<string | null>(null);
@@ -195,7 +196,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const [draft, setDraft] = React.useState<DraftRef | null>(null);
 
   const localeFields = React.useCallback(
-    (l: string): Fields => (!col ? {} : l === def ? col.fields : translatableFields(col.fields)),
+    (l: string): Fields => (!col ? {} : l === def ? col.fields : (col.i18nFields ?? {})),
     [col, def],
   );
   const issues = React.useMemo(
@@ -401,27 +402,37 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
 export function SingletonView({ name }: { name: string }) {
   const { api, schema, t, toast, bumpDrafts, session } = useZay();
   const def = schema.singletons[name];
-  const [doc, setDoc] = React.useState<Record<string, unknown> | null>(null);
+  const defLocale = schema.defaultLocale;
+  const translated = Boolean(def?.i18n);
+  const [docs, setDocs] = React.useState<Docs | null>(null);
   const [saved, setSaved] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [showErrors, setShowErrors] = React.useState(false);
   const [draft, setDraft] = React.useState<DraftRef | null>(null);
-  const def_ = schema.defaultLocale;
-  const issues = React.useMemo(
-    () => (def && doc ? validateDocs({ [def_]: doc }, () => def.fields, [def_], def_)[def_] ?? [] : []),
-    [def, doc, def_],
+  const [active, setActive] = React.useState(defLocale);
+
+  const localeFields = React.useCallback(
+    (l: string): Fields => (!def ? {} : l === defLocale ? def.fields : (def.i18nFields ?? {})),
+    [def, defLocale],
   );
+  const locales = translated ? schema.locales : [defLocale];
+  const issues = React.useMemo(
+    () => (def && docs ? validateDocs(docs, localeFields, locales, defLocale) : {}),
+    [def, docs, localeFields, locales, defLocale],
+  );
+  const issueCount = Object.values(issues).reduce((n, list) => n + list.length, 0);
+  const firstBad = locales.find((l) => (issues[l]?.length ?? 0) > 0);
 
   React.useEffect(() => {
     let live = true;
     api
-      .get<{ doc: Record<string, unknown>; draft?: DraftRef }>(`/singletons/${name}`)
+      .get<{ docs: Docs; draft?: DraftRef }>(`/singletons/${name}`)
       .then((r) => {
         if (!live) return;
         setDraft(r.draft ?? null);
-        setDoc(r.doc);
-        setSaved(JSON.stringify(r.doc));
+        setDocs(r.docs);
+        setSaved(JSON.stringify(r.docs));
       })
       .catch((e: Error) => live && setError(e.message));
     return () => {
@@ -429,24 +440,30 @@ export function SingletonView({ name }: { name: string }) {
     };
   }, [api, name]);
 
-  const dirty = useDirty(doc ?? undefined, saved);
+  const dirty = useDirty(docs ?? undefined, saved);
   const save = async () => {
-    if (!doc || saving || !dirty) return;
-    if (issues.length) {
+    if (!docs || saving || !dirty) return;
+    if (issueCount > 0) {
       setShowErrors(true);
-      toast("error", t.fixIssues.replace("{n}", String(issues.length)));
+      if (firstBad) setActive(firstBad);
+      toast("error", t.fixIssues.replace("{n}", String(issueCount)));
       return;
     }
     setSaving(true);
     try {
-      const res = await api.put<SaveResult>(`/singletons/${name}`, { doc });
-      setSaved(JSON.stringify(doc));
+      const res = await api.put<SaveResult>(`/singletons/${name}`, { docs });
+      setSaved(JSON.stringify(docs));
       if (res.draft) {
         setDraft(res.draft);
         bumpDrafts();
       }
       toast("ok", res.unchanged ? t.unchangedNote : res.draft ? `${t.draftSaved} · #${res.draft.number}` : `${t.committed} · ${t.deployNote}`);
     } catch (e) {
+      const server = e instanceof ApiError ? (e.issues as ServerIssue[] | undefined) : undefined;
+      if (server?.length) {
+        setShowErrors(true);
+        setActive(server[0]!.locale);
+      }
       toast("error", (e as Error).message);
     } finally {
       setSaving(false);
@@ -454,16 +471,54 @@ export function SingletonView({ name }: { name: string }) {
   };
   useSaveShortcut(save);
 
+  const onListOp = React.useCallback(
+    (path: (string | number)[], op: ListOp) => {
+      if (!def || !translated) return;
+      setDocs((prev) => {
+        if (!prev) return prev;
+        const listField = listFieldAt(def.fields, path, prev[defLocale]);
+        const next: Docs = { ...prev };
+        for (const l of schema.locales) if (l !== defLocale) next[l] = applyListOp(prev[l] ?? {}, path, op, listField);
+        return next;
+      });
+    },
+    [def, translated, schema.locales, defLocale],
+  );
+
   if (!def) return <ErrorBox message={`?${name}`} />;
   if (error) return <ErrorBox message={error} />;
-  if (!doc) return <Loading />;
+  if (!docs) return <Loading />;
+
+  const translating = translated && active !== defLocale;
+  const invalidTabs = showErrors ? Object.fromEntries(Object.entries(issues).map(([l, list]) => [l, list.length > 0])) : {};
   return (
     <>
       <PageHeader title={def.label} actions={<DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />} />
-      <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues) }}>
-        <Form fields={def.fields} value={doc} onChange={setDoc} />
+      {translated && <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={defLocale} invalid={invalidTabs} />}
+      {translating && (
+        <div className="zs-note">
+          <span>{t.sourceNote}</span>
+          <button
+            type="button"
+            className="zs-link"
+            onClick={() => setDocs({ ...docs, [active]: normalize(obj("", localeFields(active)), clone(docs[defLocale])) as Record<string, unknown> })}
+          >
+            {t.copyFrom} {schema.localeNames[defLocale] ?? defLocale}
+          </button>
+        </div>
+      )}
+      <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues[active] ?? []) }}>
+        <ListOpProvider value={translated && !translating ? onListOp : null}>
+          <Form
+            key={active}
+            fields={localeFields(active)}
+            value={docs[active] ?? {}}
+            reference={translating ? docs[defLocale] : undefined}
+            onChange={(v) => setDocs({ ...docs, [active]: v })}
+          />
+        </ListOpProvider>
       </ValidationProvider>
-      <SaveBar dirty={dirty} saving={saving} onSave={save} label={session.workflow === "pull-request" ? t.saveDraft : t.save} issues={showErrors ? issues.length : 0} />
+      <SaveBar dirty={dirty} saving={saving} onSave={save} label={session.workflow === "pull-request" ? t.saveDraft : t.save} issues={showErrors ? issueCount : 0} />
     </>
   );
 }

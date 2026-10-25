@@ -1,4 +1,5 @@
 import type { Field, Fields } from "../schema/dsl.mjs";
+import { isI18n, translatableOf } from "./translation";
 import type { Collection, FileSet, FileSetFile, ResolvedConfig, Singleton } from "./types";
 
 /**
@@ -49,12 +50,29 @@ export const localizeFields = (fields: Fields, lang: string): Fields =>
 
 type Labelled<T> = Omit<T, "label"> & { label: string };
 
+/**
+ * What the panel needs to know about translation: whether it is on, and which fields the
+ * non-default language tabs show (`i18nFields`, already resolved to the panel language).
+ */
+function withI18n<T extends Collection | Singleton>(def: T, lang: string): Labelled<T> & { i18n: boolean; i18nFields?: Fields } {
+  const on = isI18n(def);
+  const { layout: _layout, ...rest } = def as T & { layout?: unknown };
+  void _layout;
+  return {
+    ...rest,
+    label: pick(def.label, lang),
+    fields: localizeFields(def.fields, lang),
+    i18n: on,
+    ...(on ? { i18nFields: localizeFields(translatableOf(def), lang) } : {}),
+  } as unknown as Labelled<T> & { i18n: boolean; i18nFields?: Fields };
+}
+
 export function localizeSchema(config: ResolvedConfig, lang: string) {
   const mapObj = <T extends { label: Label }, R>(o: Record<string, T>, fn: (v: T) => R) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, fn(v)]));
   return {
     groups: config.groups.map((g) => ({ ...g, label: pick(g.label, lang) })),
-    collections: mapObj(config.collections, (c: Collection): Labelled<Collection> => ({ ...c, label: pick(c.label, lang), fields: localizeFields(c.fields, lang) })),
-    singletons: mapObj(config.singletons, (s: Singleton): Labelled<Singleton> => ({ ...s, label: pick(s.label, lang), fields: localizeFields(s.fields, lang) })),
+    collections: mapObj(config.collections, (c: Collection) => withI18n(c, lang)),
+    singletons: mapObj(config.singletons, (s: Singleton) => withI18n(s, lang)),
     fileSets: mapObj(config.fileSets, (f: FileSet) => ({ label: pick(f.label, lang), group: f.group })),
   };
 }

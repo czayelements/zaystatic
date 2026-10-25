@@ -49,7 +49,7 @@ test("blocks round-trip through per-locale files; untranslated languages write n
           pages: defineCollection({
             label: "Pages",
             dir: "content/pages",
-            layout: "locales",
+            i18n: true,
             ext: "json",
             identifier: "title",
             fields: { title: str("Title", { i18n: "translate" }), sections },
@@ -77,13 +77,13 @@ test("blocks round-trip through per-locale files; untranslated languages write n
 test("config and schema live in separate files and merge; top-level definitions win", () => {
   const schema = defineSchema({
     groups: [{ id: "g", label: "G" }],
-    collections: { a: defineCollection({ label: "A", dir: "a", layout: "plain", identifier: "t", fields: { t: str("T") } }) },
+    collections: { a: defineCollection({ label: "A", dir: "a", identifier: "t", fields: { t: str("T") } }) },
   });
   const merged = resolveConfig(
     defineConfig({
       locales: ["en"], defaultLocale: "en", basePath: "/p", apiPath: "/api",
       schema,
-      collections: { a: defineCollection({ label: "Override", dir: "a", layout: "plain", identifier: "t", fields: { t: str("T") } }), b: defineCollection({ label: "B", dir: "b", layout: "plain", identifier: "t", fields: { t: str("T") } }) },
+      collections: { a: defineCollection({ label: "Override", dir: "a", identifier: "t", fields: { t: str("T") } }), b: defineCollection({ label: "B", dir: "b", identifier: "t", fields: { t: str("T") } }) },
     }),
   );
   assert.deepEqual(Object.keys(merged.collections), ["a", "b"]);
