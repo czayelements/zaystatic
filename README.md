@@ -11,6 +11,9 @@ it tomorrow and your content is still just JSON and Markdown.
 - **Real localisation.** One file per language (`post.en.mdx`, `post.de.mdx`),
   language tabs, the source text shown under every field you translate.
 - **Drag and drop** for every list, plus **typed blocks** for page-builder style content.
+- **Validation** rules (required, length, pattern, min/max, item counts) enforced on the server and shown in the panel.
+- **Media library** to browse, reuse and delete uploads.
+- **Optional draft workflow:** saves can open pull requests, with a Review page to publish or discard.
 - **Images:** paste a link or upload, to any S3-compatible bucket (S3, R2, MinIO,
   B2, Spaces …) or straight into your repo.
 - **Git is the backend.** Each save is one commit, made with the editor's own GitHub
@@ -223,6 +226,38 @@ which stay position-aligned.
 `normalize(field, raw)` (from `zay-static/schema`) fills defaults the same way the panel does, so
 your build can read files that only contain the fields someone filled in.
 
+## Draft workflow (pull requests)
+
+By default a save is a commit to your configured branch. Set `workflow` and every save goes to a
+draft branch instead and opens a pull request; a **Review** tab lists the drafts to publish (merge) or discard:
+
+```ts
+defineConfig({
+  // …
+  workflow: {
+    mode: "pull-request",
+    previewUrl: "https://deploy-preview-{pr}--my-site.netlify.app", // optional: link to a rendered preview
+    mergeMethod: "squash", // or "merge" | "rebase"
+    branchPrefix: "zay/",
+  },
+});
+```
+
+One branch per editing unit (`zay/c/<collection>/<slug>`, `zay/s/<singleton>`, `zay/f/<set>/<file>`), so unrelated
+edits never block each other. While a draft is open the panel shows the draft; unchanged saves add nothing. Needs GitHub
+mode (local mode always writes directly). Media uploads with the repo adapter commit directly (see ROADMAP).
+
+## Validation
+
+```ts
+str("Slug", { required: true, minLength: 3, maxLength: 60, pattern: ["^[a-z0-9-]+$", "Lowercase letters, numbers and dashes"] })
+int("Year", { min: 1990, max: 2100 })
+list("Tags", str("Tag"), { minItems: 1, maxItems: 5 })
+```
+
+Rules are checked by the same function (`validateDoc`) on the server and in the panel. Translations may be partial:
+`required` applies to the default language only, other rules apply to whatever is filled in.
+
 ## Panel language
 
 The panel UI is English by default and i18n-based. Choose a bundled language in the settings,
@@ -267,7 +302,7 @@ defineConfig({
 });
 ```
 
-Use `image("Cover")` in the schema. Without `media` the field is a link input with a preview.
+Use `image("Cover")` in the schema; the panel gets a **Media** tab (browse, search, reuse, delete) and a "Library" picker in every image field when the adapter supports listing (`s3Media` and `repoMedia` do). Without `media` the field is a link input with a preview.
 Uploads are validated on the server (size, real file type from the bytes, unsafe SVG) and stored
 as `<prefix>YYYY/MM/<slug>-<random>.<ext>` with a one-year immutable `Cache-Control`.
 `s3Media` signs requests itself (AWS SigV4, no AWS SDK); `repoMedia()` commits the file to
