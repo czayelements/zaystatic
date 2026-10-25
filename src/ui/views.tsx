@@ -8,6 +8,7 @@ import { Link, useZay } from "./context";
 import { Form, ListOpProvider, applyListOp } from "./form";
 import type { ListOp } from "./form";
 import { Plus, Search, Trash } from "./icons";
+import { MediaLibrary } from "./media";
 import { ErrorBox, Loading, LocaleTabs, PageHeader, SaveBar, useAsync, useDirty, useSaveShortcut } from "./parts";
 import type { Docs, EntrySummary } from "./types";
 import { clone, cx, slugify } from "./util";
@@ -16,6 +17,17 @@ import type { ServerIssue } from "./api";
 import { ApiError } from "./api";
 
 type SaveResult = { ok: boolean; unchanged?: boolean; id?: string; url?: string; files?: number };
+
+export function MediaView() {
+  const { t, session } = useZay();
+  if (!session.media?.library) return <ErrorBox message="—" />;
+  return (
+    <>
+      <PageHeader title={t.library} />
+      <MediaLibrary />
+    </>
+  );
+}
 
 /* ── Overview ───────────────────────────────────────────────────── */
 

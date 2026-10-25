@@ -27,7 +27,7 @@ import {
   writeFileSet,
   writeSingleton,
 } from "./content";
-import { DEFAULT_ACCEPT, DEFAULT_MAX_BYTES, extFor, mediaKey, sniffImage, svgIsSafe } from "./media";
+import { DEFAULT_ACCEPT, DEFAULT_MAX_BYTES, SAFE_KEY, extFor, mediaKey, sniffImage, svgIsSafe } from "./media";
 import { fsStore } from "./store-fs";
 import { githubStore } from "./store-github";
 import { HttpError, resolveConfig } from "./types";
@@ -128,7 +128,12 @@ export function createHandler(input: ZayConfig) {
         apiPath: api,
         basePath: config.basePath,
         media: config.media
-          ? { maxBytes: config.media.maxBytes ?? DEFAULT_MAX_BYTES, accept: config.media.accept ?? DEFAULT_ACCEPT }
+          ? {
+              maxBytes: config.media.maxBytes ?? DEFAULT_MAX_BYTES,
+              accept: config.media.accept ?? DEFAULT_ACCEPT,
+              library: typeof config.media.adapter.list === "function",
+              canDelete: typeof config.media.adapter.delete === "function",
+            }
           : null,
       });
     }
@@ -159,6 +164,22 @@ export function createHandler(input: ZayConfig) {
         throw new HttpError(400, "Invalid JSON");
       }
     };
+
+    if (parts[0] === "media" && method === "GET") {
+      const adapter = config.media?.adapter;
+      if (!adapter?.list) throw new HttpError(404, "Media library is not available");
+      const limit = Math.min(120, Math.max(1, Number(url.searchParams.get("limit")) || 48));
+      return json(await adapter.list({ store }, { cursor: url.searchParams.get("cursor") ?? undefined, limit }));
+    }
+
+    if (parts[0] === "media" && method === "DELETE") {
+      const adapter = config.media?.adapter;
+      if (!adapter?.delete) throw new HttpError(404, "Deleting media is not available");
+      const key = url.searchParams.get("key") ?? "";
+      if (!SAFE_KEY.test(key)) throw new HttpError(400, "Invalid key");
+      await adapter.delete(key, { store });
+      return json({ ok: true });
+    }
 
     if (parts[0] === "media" && method === "POST") {
       const media = config.media;

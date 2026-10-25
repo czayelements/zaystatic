@@ -1,3 +1,5 @@
+export type MediaEntry = { key: string; url: string; size?: number; modified?: string };
+
 export type ServerIssue = { locale: string; path: (string | number)[]; code: string; params?: Record<string, unknown> };
 
 export class ApiError extends Error {
@@ -37,6 +39,9 @@ export function createApi(base: string) {
   return {
     base,
     upload,
+    mediaList: (cursor?: string) =>
+      request<{ items: MediaEntry[]; next?: string }>("GET", `/media?limit=48${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
+    mediaDelete: (key: string) => request<{ ok: boolean }>("DELETE", `/media?key=${encodeURIComponent(key)}`),
     get: <T,>(path: string) => request<T>("GET", path),
     post: <T,>(path: string, body: unknown) => request<T>("POST", path, body),
     put: <T,>(path: string, body: unknown) => request<T>("PUT", path, body),

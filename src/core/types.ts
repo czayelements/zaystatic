@@ -129,6 +129,8 @@ export interface Store {
   readonly kind: "fs" | "github";
   /** File names in the folder (subfolders excluded); empty if the folder does not exist. */
   list(dir: string): Promise<string[]>;
+  /** Every file under `dir`, recursively, as full repository paths (empty if the folder does not exist). */
+  listTree(dir: string): Promise<string[]>;
   read(path: string): Promise<string | null>;
   /** All changes in one commit (GitHub) / written in order (local). */
   commit(changes: Change[], message: string): Promise<{ id?: string; url?: string }>;

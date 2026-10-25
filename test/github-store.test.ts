@@ -40,6 +40,9 @@ before(async () => {
       if (!dir.length) return send(404, { message: "Not Found" });
       return send(200, dir.map((f) => ({ name: f.split("/").pop(), type: "file", sha: sha(files[f]!), path: f })));
     }
+    if (req.method === "GET" && p.startsWith("/git/trees/")) {
+      return send(200, { tree: Object.keys(files).map((path) => ({ path, type: "blob" })) });
+    }
     if (req.method === "GET" && p.startsWith("/git/ref/")) return send(200, { object: { sha: head } });
     if (req.method === "GET" && p.startsWith("/git/commits/")) return send(200, { tree: { sha: `tree-${p.split("/").pop()}` } });
     if (req.method === "GET" && p.startsWith("/git/blobs/")) {
@@ -123,4 +126,12 @@ test("commit: a concurrent push surfaces a clear error instead of overwriting", 
   await assert.rejects(store().commit([{ path: "content/a.json", content: "mine" }], "m"), /changed elsewhere/);
   racing = false;
   assert.equal(files["content/a.json"], "x");
+});
+
+test("listTree returns every file under a folder (recursive), skipping dot-folders", async () => {
+  files = { "public/uploads/2026/03/a.png": "x", "public/uploads/2026/04/b.png": "y", "public/uploads/.hidden/c.png": "z", "content/a.json": "{}" };
+  commits = { c1: { ...files } };
+  head = "c1";
+  assert.deepEqual((await store().listTree("public/uploads")).sort(), ["public/uploads/2026/03/a.png", "public/uploads/2026/04/b.png"]);
+  assert.deepEqual(await store().listTree("nothing"), []);
 });

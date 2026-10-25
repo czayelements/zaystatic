@@ -24,7 +24,7 @@ export type SessionInfo = {
   apiPath: string;
   basePath: string;
   /** Limits when uploads are enabled; null when disabled (paste-a-link only). */
-  media: { maxBytes: number; accept: string[] } | null;
+  media: { maxBytes: number; accept: string[]; library: boolean; canDelete: boolean } | null;
 };
 
 export type EntrySummary = {

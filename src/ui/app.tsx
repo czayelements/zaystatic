@@ -5,7 +5,7 @@ import * as React from "react";
 import { createApi } from "./api";
 import { Link, ZayProvider, useZay } from "./context";
 import { GitHub, Menu, Out, Search, X } from "./icons";
-import { CollectionView, Dashboard, EntryView, FileSetView, SingletonView, navSections } from "./views";
+import { CollectionView, Dashboard, EntryView, FileSetView, MediaView, SingletonView, navSections } from "./views";
 import { resolveMessages } from "./i18n";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
@@ -99,7 +99,11 @@ function Shell() {
   const menu = menuPath === path;
   const setMenu = (open: boolean) => setMenuPath(open ? path : null);
   const [nav, setNav] = React.useState("");
-  const sections = React.useMemo(() => navSections(schema), [schema]);
+  const sections = React.useMemo(() => {
+    const list = navSections(schema);
+    if (session.media?.library) list.push({ id: "_media", label: t.media, items: [{ to: "/media", label: t.library, kind: "c", key: "media" }] });
+    return list;
+  }, [schema, session.media, t]);
   const { view, parts } = parse(path);
 
   const logout = async () => {
@@ -110,6 +114,7 @@ function Shell() {
   let body: React.ReactNode;
   if (view === "c" && parts[0]) body = parts[1] ? <EntryView key={`${parts[0]}/${parts[1]}`} name={parts[0]} slug={parts[1]} /> : <CollectionView name={parts[0]} />;
   else if (view === "s" && parts[0]) body = <SingletonView key={parts[0]} name={parts[0]} />;
+  else if (view === "media") body = <MediaView />;
   else if (view === "f" && parts[0]) body = <FileSetView key={`${parts[0]}/${parts[1] ?? ""}`} name={parts[0]} file={parts[1]} />;
   else body = <Dashboard />;
 

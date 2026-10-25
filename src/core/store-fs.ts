@@ -21,6 +21,25 @@ export function fsStore(root: string): Store {
         return [];
       }
     },
+    async listTree(dir) {
+      const out: string[] = [];
+      const walk = async (rel: string) => {
+        let entries;
+        try {
+          entries = await readdir(abs(rel), { withFileTypes: true });
+        } catch {
+          return;
+        }
+        for (const e of entries) {
+          if (e.name.startsWith(".")) continue;
+          const child = `${rel}/${e.name}`;
+          if (e.isDirectory()) await walk(child);
+          else if (e.isFile()) out.push(child);
+        }
+      };
+      await walk(dir.replace(/\/$/, ""));
+      return out;
+    },
     async read(path) {
       try {
         return await readFile(abs(path), "utf8");

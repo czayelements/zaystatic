@@ -13,9 +13,34 @@ import type { Store } from "./types";
 export type MediaFile = { key: string; contentType: string; data: Uint8Array };
 export type MediaContext = { store: Store };
 
+export type MediaItem = {
+  /** Same key the adapter received on upload (without the adapter's own prefix). */
+  key: string;
+  url: string;
+  size?: number;
+  /** ISO timestamp when the storage provides one. */
+  modified?: string;
+};
+
 export interface MediaAdapter {
   upload(file: MediaFile, ctx: MediaContext): Promise<{ url: string }>;
+  /** Optional: enables the media library. Newest first; `cursor` is opaque (return `next` to continue). */
+  list?(ctx: MediaContext, opts: { cursor?: string; limit: number }): Promise<{ items: MediaItem[]; next?: string }>;
+  /** Optional: enables deleting from the library. */
+  delete?(key: string, ctx: MediaContext): Promise<void>;
 }
+
+/** Library listing cap: the newest N objects are considered (keeps listing to one storage request). */
+export const LIST_CAP = 1000;
+const IMAGE_EXT = /\.(png|jpe?g|webp|gif|avif|svg)$/i;
+/** Keys the panel may ask to delete: plain path segments only. */
+export const SAFE_KEY = /^(?!.*\.\.)[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/;
+
+const page = <T>(all: T[], cursor: string | undefined, limit: number) => {
+  const from = Math.max(0, Number(cursor) || 0);
+  const items = all.slice(from, from + limit);
+  return { items, ...(from + limit < all.length ? { next: String(from + limit) } : {}) };
+};
 
 export type MediaConfig = {
   adapter: MediaAdapter;
@@ -146,12 +171,19 @@ export function s3Media(o: S3Options): MediaAdapter {
   const prefix = (o.prefix ?? "uploads/").replace(/^\/+/, "");
   const cache = o.cacheControl ?? "public, max-age=31536000, immutable"; // the file name carries a random suffix, so the object never changes
 
+  const objectUrl = (key: string) =>
+    pathStyle
+      ? `${endpoint.origin}${endpoint.pathname.replace(/\/$/, "")}/${o.bucket}/${key}`
+      : `${endpoint.protocol}//${o.bucket}.${endpoint.host}${endpoint.pathname.replace(/\/$/, "")}/${key}`;
+  const publicUrl = (key: string, fallback?: URL) => {
+    const base = o.publicUrl?.replace(/\/$/, "");
+    return base ? `${base}/${key}` : (fallback ?? new URL(objectUrl(key))).toString();
+  };
+
   return {
     async upload(file) {
       const key = `${prefix}${file.key}`;
-      const url = pathStyle
-        ? new URL(`${endpoint.origin}${endpoint.pathname.replace(/\/$/, "")}/${o.bucket}/${key}`)
-        : new URL(`${endpoint.protocol}//${o.bucket}.${endpoint.host}${endpoint.pathname.replace(/\/$/, "")}/${key}`);
+      const url = new URL(objectUrl(key));
       const headers = signV4({
         method: "PUT",
         url,
@@ -165,8 +197,39 @@ export function s3Media(o: S3Options): MediaAdapter {
       void _host;
       const res = await fetch(url, { method: "PUT", headers: send, body: Buffer.from(file.data), cache: "no-store" });
       if (!res.ok) throw new Error(`S3 upload failed: ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
-      const base = o.publicUrl?.replace(/\/$/, "");
-      return { url: base ? `${base}/${key}` : url.toString() };
+      return { url: publicUrl(key, url) };
+    },
+
+    async list(_ctx, { cursor, limit }) {
+      const url = new URL(objectUrl(""));
+      url.pathname = pathStyle ? `${endpoint.pathname.replace(/\/$/, "")}/${o.bucket}` : `${endpoint.pathname.replace(/\/$/, "")}/`;
+      url.searchParams.set("list-type", "2");
+      url.searchParams.set("prefix", prefix);
+      url.searchParams.set("max-keys", String(LIST_CAP));
+      const headers = signV4({ method: "GET", url, headers: {}, payloadHash: sha256(""), region, accessKeyId: o.accessKeyId, secretAccessKey: o.secretAccessKey });
+      const { host: _h, ...send } = headers;
+      void _h;
+      const res = await fetch(url, { headers: send, cache: "no-store" });
+      if (!res.ok) throw new Error(`S3 list failed: ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
+      const xml = await res.text();
+      const tag = (block: string, name: string) => block.match(new RegExp(`<${name}>([\\s\\S]*?)</${name}>`))?.[1];
+      const decode = (v: string) => v.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
+      const all: MediaItem[] = [...xml.matchAll(/<Contents>([\s\S]*?)<\/Contents>/g)]
+        .map(([, block]) => ({ full: decode(tag(block!, "Key") ?? ""), size: Number(tag(block!, "Size")), modified: tag(block!, "LastModified") }))
+        .filter((e) => e.full.startsWith(prefix) && IMAGE_EXT.test(e.full))
+        .map((e) => ({ key: e.full.slice(prefix.length), url: publicUrl(e.full), size: e.size, modified: e.modified }))
+        .sort((a, b) => String(b.modified ?? b.key).localeCompare(String(a.modified ?? a.key)));
+      return page(all, cursor, limit);
+    },
+
+    async delete(key) {
+      if (!SAFE_KEY.test(key)) throw new Error("invalid key");
+      const url = new URL(objectUrl(`${prefix}${key}`));
+      const headers = signV4({ method: "DELETE", url, headers: {}, payloadHash: sha256(""), region, accessKeyId: o.accessKeyId, secretAccessKey: o.secretAccessKey });
+      const { host: _h, ...send } = headers;
+      void _h;
+      const res = await fetch(url, { method: "DELETE", headers: send, cache: "no-store" });
+      if (!res.ok && res.status !== 404) throw new Error(`S3 delete failed: ${res.status}`);
     },
   };
 }
@@ -198,6 +261,21 @@ export function repoMedia(o: { dir?: string; urlPrefix?: string } = {}): MediaAd
         `media: add ${file.key.split("/").pop()}`,
       );
       return { url: `${urlPrefix}/${file.key}` };
+    },
+
+    async list({ store }, { cursor, limit }) {
+      const files = await store.listTree(dir);
+      const all: MediaItem[] = files
+        .filter((f) => IMAGE_EXT.test(f))
+        .map((f) => f.slice(dir.length + 1))
+        .sort((a, b) => (a < b ? 1 : a > b ? -1 : 0)) // YYYY/MM/ prefix: newest first
+        .map((key) => ({ key, url: `${urlPrefix}/${key}` }));
+      return page(all, cursor, limit);
+    },
+
+    async delete(key, { store }) {
+      if (!SAFE_KEY.test(key)) throw new Error("invalid key");
+      await store.commit([{ path: `${dir}/${key}`, content: null }], `media: remove ${key.split("/").pop()}`);
     },
   };
 }

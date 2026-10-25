@@ -22,7 +22,9 @@ import { CSS } from "@dnd-kit/utilities";
 import { normalize } from "../schema/dsl.mjs";
 import type { Field, Fields } from "../schema/dsl.mjs";
 import { useZay } from "./context";
-import { Chevron, Copy, Grip, Plus, Trash, Upload, X } from "./icons";
+import { Chevron, Copy, Grip, Image as ImageIcon, Plus, Trash, Upload, X } from "./icons";
+import { MediaLibrary } from "./media";
+import { Modal } from "./modal";
 import { clone, cx, renderTemplate, uid } from "./util";
 import { useFieldErrors, useHasErrorsUnder } from "./validation";
 
@@ -289,6 +291,7 @@ function ImageField({ value, onChange, placeholder }: { value: string; onChange:
   const [over, setOver] = React.useState(false);
   const [broken, setBroken] = React.useState(false);
   const pick = React.useRef<HTMLInputElement>(null);
+  const [browsing, setBrowsing] = React.useState(false);
 
   const send = async (file: File | undefined) => {
     if (!file || !media) return;
@@ -366,6 +369,11 @@ function ImageField({ value, onChange, placeholder }: { value: string; onChange:
                   e.target.value = "";
                 }}
               />
+              {media.library && (
+                <button type="button" className="zs-btn zs-btn-sm" onClick={() => setBrowsing(true)}>
+                  <ImageIcon /> {t.fromLibrary}
+                </button>
+              )}
             </>
           )}
           {value && (
@@ -375,6 +383,17 @@ function ImageField({ value, onChange, placeholder }: { value: string; onChange:
           )}
         </div>
       </div>
+      {browsing && (
+        <Modal title={t.library} onClose={() => setBrowsing(false)}>
+          <MediaLibrary
+            onPick={(url) => {
+              setBroken(false);
+              onChange(url);
+              setBrowsing(false);
+            }}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

@@ -58,6 +58,13 @@ export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT
       return items.filter((i) => i.type === "file" && !i.name.startsWith(".")).map((i) => i.name);
     },
 
+    async listTree(dir) {
+      const res = await call(`${base}/git/trees/${encodeURIComponent(repo.branch)}?recursive=1`);
+      const data = await json<{ tree: { path: string; type: string }[]; truncated?: boolean }>(res, "tree");
+      const prefix = `${dir.replace(/\/$/, "")}/`;
+      return data.tree.filter((e) => e.type === "blob" && e.path.startsWith(prefix) && !e.path.split("/").some((p) => p.startsWith("."))).map((e) => e.path);
+    },
+
     async read(path) {
       const known = shaOf.get(path);
       if (known && blobs.has(known)) return blobs.get(known)!;
