@@ -471,10 +471,10 @@ export function SingletonView({ name }: { name: string }) {
 /* ── File sets (UI strings) ─────────────────────────────────────── */
 
 export function FileSetView({ name, file }: { name: string; file?: string }) {
-  const { api, schema } = useZay();
+  const { api, schema, lang } = useZay();
   const set = schema.fileSets[name];
   const [q, setQ] = React.useState("");
-  const list = useAsync(() => api.get<{ files: { name: string; label: string }[] }>(`/filesets/${name}`), [name]);
+  const list = useAsync(() => api.get<{ files: { name: string; label: string }[] }>(`/filesets/${name}?lang=${encodeURIComponent(lang)}`), [name, lang]);
   if (!set) return <ErrorBox message={`?${name}`} />;
   if (file) return <FileEditor name={name} file={file} label={set.label} />;
 
@@ -507,7 +507,7 @@ export function FileSetView({ name, file }: { name: string; file?: string }) {
 }
 
 function FileEditor({ name, file, label }: { name: string; file: string; label: string }) {
-  const { api, schema, t, toast, bumpDrafts, session } = useZay();
+  const { api, schema, t, toast, bumpDrafts, session, lang } = useZay();
   const [draft, setDraft] = React.useState<DraftRef | null>(null);
   const def = schema.defaultLocale;
   const [data, setData] = React.useState<{ file: { label: string }; fields: Fields; docs: Docs } | null>(null);
@@ -521,7 +521,7 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
   React.useEffect(() => {
     let live = true;
     api
-      .get<{ file: { label: string }; fields: Fields; docs: Docs; draft?: DraftRef }>(`/filesets/${name}/${file}`)
+      .get<{ file: { label: string }; fields: Fields; docs: Docs; draft?: DraftRef }>(`/filesets/${name}/${file}?lang=${encodeURIComponent(lang)}`)
       .then((r) => {
         if (!live) return;
         setDraft(r.draft ?? null);
@@ -533,7 +533,7 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
     return () => {
       live = false;
     };
-  }, [api, name, file]);
+  }, [api, name, file, lang]);
 
   const dirty = useDirty(docs ?? undefined, saved);
   const save = async () => {

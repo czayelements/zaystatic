@@ -8,6 +8,7 @@ import { FileText, GitHub, Globe, Menu, Out, Search, Stack, X } from "./icons";
 import { CollectionView, Dashboard, EntryView, FileSetView, MediaView, ReviewView, SingletonView, navSections } from "./views";
 import type { NavItem } from "./views";
 import { resolveMessages } from "./i18n";
+import { initialLanguage, languageName } from "./language";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
 
@@ -18,55 +19,65 @@ export type ZayAppProps = {
   editors?: EditorMap;
 };
 
-type Boot =
-  | { state: "loading" }
-  | { state: "error"; message: string }
-  | { state: "ready"; session: SessionInfo; schema: Schema };
-
 const NO_EDITORS: EditorMap = {};
 
 export function ZayApp({ apiPath, editors = NO_EDITORS }: ZayAppProps) {
   const api = React.useMemo(() => createApi(apiPath), [apiPath]);
-  const [boot, setBoot] = React.useState<Boot>({ state: "loading" });
+  const [session, setSession] = React.useState<SessionInfo | null>(null);
+  /* undefined: loading; null: no schema (sign-in screen / unconfigured) */
+  const [schema, setSchema] = React.useState<Schema | null | undefined>(undefined);
+  const [error, setError] = React.useState<string | null>(null);
+  const [lang, setLang] = React.useState<string>("en");
   const [tick, setTick] = React.useState(0);
 
   React.useEffect(() => {
     let live = true;
-    (async () => {
-      try {
-        const session = await api.get<SessionInfo>("/session");
-        if (session.mode === "unconfigured" || (session.mode === "github" && !session.user)) {
-          if (live) setBoot({ state: "ready", session, schema: null as unknown as Schema });
-          return;
-        }
-        const schema = await api.get<Schema>("/schema");
-        if (live) setBoot({ state: "ready", session, schema });
-      } catch (e) {
-        if (live) setBoot({ state: "error", message: (e as Error).message });
-      }
-    })();
+    api
+      .get<SessionInfo>("/session")
+      .then((s) => {
+        if (!live) return;
+        setLang((current) => (session ? current : initialLanguage(s)));
+        setSession(s);
+      })
+      .catch((e: Error) => live && setError(e.message));
     return () => {
       live = false;
     };
+    // The session is re-read only on a manual refresh.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, tick]);
 
-  if (boot.state === "loading") return <div className="zs-root zs-center">…</div>;
-  if (boot.state === "error") return <div className="zs-root zs-center zs-error">{boot.message}</div>;
+  React.useEffect(() => {
+    if (!session) return;
+    if (session.mode === "unconfigured" || (session.mode === "github" && !session.user)) {
+      setSchema(null);
+      return;
+    }
+    let live = true;
+    api
+      .get<Schema>(`/schema?lang=${encodeURIComponent(lang)}`)
+      .then((s) => live && setSchema(s))
+      .catch((e: Error) => live && setError(e.message));
+    return () => {
+      live = false;
+    };
+  }, [api, session, lang]);
 
-  const { session, schema } = boot;
-  if (!schema) return <SignIn session={session} apiPath={apiPath} />;
+  if (error) return <div className="zs-root zs-center zs-error">{error}</div>;
+  if (!session || schema === undefined) return <div className="zs-root zs-center">…</div>;
+  if (!schema) return <SignIn session={session} lang={lang} apiPath={apiPath} />;
 
   return (
     <div className="zs-root">
-      <ZayProvider api={api} schema={schema} session={session} editors={editors} refreshSchema={() => setTick((n) => n + 1)}>
+      <ZayProvider api={api} schema={schema} session={session} editors={editors} refreshSchema={() => setTick((n) => n + 1)} lang={lang} onLanguage={setLang}>
         <Shell />
       </ZayProvider>
     </div>
   );
 }
 
-function SignIn({ session, apiPath }: { session: SessionInfo; apiPath: string }) {
-  const t = resolveMessages(session.language, session.messages);
+function SignIn({ session, lang, apiPath }: { session: SessionInfo; lang: string; apiPath: string }) {
+  const t = resolveMessages(lang, session.translations?.[lang]);
   const error = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("error") : null;
   return (
     <div className="zs-root zs-center">
@@ -94,7 +105,7 @@ function parse(path: string): { view: string; parts: string[] } {
 }
 
 function Shell() {
-  const { path, schema, session, t, api, navigate, viewTick, draftTick } = useZay();
+  const { path, schema, session, t, api, navigate, viewTick, draftTick, lang, languages, setLang } = useZay();
   /* The menu closes when the page changes: we remember the path it was opened on. */
   const [menuPath, setMenuPath] = React.useState<string | null>(null);
   const menu = menuPath === path;
@@ -120,11 +131,11 @@ function Shell() {
   };
 
   let body: React.ReactNode;
-  if (view === "c" && parts[0]) body = parts[1] ? <EntryView key={`${parts[0]}/${parts[1]}/${viewTick}`} name={parts[0]} slug={parts[1]} /> : <CollectionView name={parts[0]} />;
-  else if (view === "s" && parts[0]) body = <SingletonView key={`${parts[0]}/${viewTick}`} name={parts[0]} />;
-  else if (view === "media") body = <MediaView />;
-  else if (view === "review" && hasReview) body = <ReviewView />;
-  else if (view === "f" && parts[0]) body = <FileSetView key={`${parts[0]}/${parts[1] ?? ""}/${viewTick}`} name={parts[0]} file={parts[1]} />;
+  if (view === "c" && parts[0]) body = parts[1] ? <EntryView key={`${parts[0]}/${parts[1]}/${viewTick}/${lang}`} name={parts[0]} slug={parts[1]} /> : <CollectionView name={parts[0]} />;
+  else if (view === "s" && parts[0]) body = <SingletonView key={`${parts[0]}/${viewTick}/${lang}`} name={parts[0]} />;
+  else if (view === "media") body = <MediaView key={lang} />;
+  else if (view === "review" && hasReview) body = <ReviewView key={lang} />;
+  else if (view === "f" && parts[0]) body = <FileSetView key={`${parts[0]}/${parts[1] ?? ""}/${viewTick}/${lang}`} name={parts[0]} file={parts[1]} />;
   else body = <Dashboard />;
 
   const q = nav.trim().toLowerCase();
@@ -190,6 +201,19 @@ function Shell() {
             );
           })}
         </nav>
+
+        {languages.length > 1 && (
+          <label className="zs-lang">
+            <Globe width={14} height={14} />
+            <select value={lang} aria-label="Language" onChange={(e) => setLang(e.target.value)}>
+              {languages.map((code) => (
+                <option key={code} value={code}>
+                  {languageName(code)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <footer className="zs-side-foot">
           {session.user?.avatar && <img src={session.user.avatar} alt="" width={24} height={24} />}

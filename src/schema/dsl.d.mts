@@ -2,6 +2,10 @@ export type FieldType =
   | "string" | "text" | "markdown" | "image" | "int" | "bool" | "select"
   | "date" | "datetime" | "relation" | "relations" | "list" | "object" | "blocks";
 
+/** Text that may be given per language: `"Title"` or `{ en: "Title", de: "Titel" }`. */
+export type Label = string | Record<string, string>;
+
+/** As the panel receives it (resolved to a single language). */
 export interface SelectOption { label: string; value: string }
 
 export interface BlockType {
@@ -43,24 +47,32 @@ export interface Field {
 }
 
 export type Fields = Record<string, Field>;
-type Opts = Partial<Field> & Record<string, unknown>;
+/**
+ * Options accepted by the field helpers. Texts (`hint`, `patternMessage`, the message in a
+ * `pattern` tuple) may be given per language; the panel receives them already resolved.
+ */
+type Opts = Omit<Partial<Field>, "hint" | "patternMessage" | "pattern"> & {
+  hint?: Label;
+  patternMessage?: Label;
+  pattern?: string | [source: string, message: Label];
+} & Record<string, unknown>;
 
-export function str(label: string, o?: Opts): Field;
-export function text(label: string, o?: Opts): Field;
-export function image(label: string, o?: Opts): Field;
-export function markdown(label: string, o?: Opts): Field;
-export function int(label: string, o?: Opts): Field;
-export function bool(label: string, def?: boolean, o?: Opts): Field;
-export function select(label: string, options: SelectOption[], def?: string, o?: Opts): Field;
-export function date(label: string, o?: Opts): Field;
-export function datetime(label: string, o?: Opts): Field;
-export function relation(label: string, collection: string, o?: Opts): Field;
-export function relations(label: string, collection: string, o?: Opts): Field;
-export function list(label: string, item: Field, o?: Opts): Field;
-export function obj(label: string, fields: Fields, o?: Opts): Field;
-export function block(label: string, fields: Fields, o?: Partial<BlockType>): BlockType;
-export function blocks(label: string, types: Record<string, BlockType>, o?: Opts): Field;
-export function strList(label: string, itemLabel?: string, o?: Opts): Field;
+export function str(label: Label, o?: Opts): Field;
+export function text(label: Label, o?: Opts): Field;
+export function image(label: Label, o?: Opts): Field;
+export function markdown(label: Label, o?: Opts): Field;
+export function int(label: Label, o?: Opts): Field;
+export function bool(label: Label, def?: boolean, o?: Opts): Field;
+export function select(label: Label, options: { label: Label; value: string }[], def?: string, o?: Opts): Field;
+export function date(label: Label, o?: Opts): Field;
+export function datetime(label: Label, o?: Opts): Field;
+export function relation(label: Label, collection: string, o?: Opts): Field;
+export function relations(label: Label, collection: string, o?: Opts): Field;
+export function list(label: Label, item: Field, o?: Opts): Field;
+export function obj(label: Label, fields: Fields, o?: Opts): Field;
+export function block(label: Label, fields: Fields, o?: Partial<BlockType>): BlockType;
+export function blocks(label: Label, types: Record<string, BlockType>, o?: Opts): Field;
+export function strList(label: Label, itemLabel?: string, o?: Opts): Field;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- normalize() returns the shape the schema describes */
 export function normalize(desc: Field, raw: unknown): any;

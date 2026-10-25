@@ -116,7 +116,7 @@ pull-request workflow** (`workflow: "pull-request"`): draft branch + PR per entr
 editors (plug-ins). Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
 into automatic Collections / Singletons / File sets sections; kind icons on every item.
 
-**Panel language**: i18n-based; English is the only bundled language; `language` + `translations` in the settings add any other language.
+**Panel language management**: English is the only bundled language; language picker in the sidebar (choice remembered), opt-in browser-language detection, project `translations`, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); `language` + `translations` in the settings add any other language.
 
 **Runtime**: `(Request) => Response` handler; adapters for Next.js and Node/Express; recipes for Hono, SvelteKit, Astro, Workers.
 
@@ -172,7 +172,7 @@ Ordered by value. Each item says where to start and what "done" means.
 1. **Browser-level tests** for the panel (Playwright against the fake GitHub or local mode): drag and drop, translation tabs,
    upload, validation, library, draft flow. Scratch CDP scripts used during development are not in the repo; rebuild them as proper tests.
 2. **Accessibility audit**: keyboard drag and drop works through dnd-kit; do a screen-reader pass, focus management in modals, contrast check.
-3. **More panel languages** (see below), including right-to-left styles for Arabic/Hebrew.
+3. **More panel languages** (see below), including right-to-left styles for Arabic/Hebrew. Also: localise server error messages (they are English only today), date/number formatting by language, plural-aware strings.
 4. **Performance**: large collections (hundreds of entries) call the store once per entry on list; add a cached index or a
    server-side summary file option. Big forms re-render the whole tree on each keystroke; memoise field rows.
 
@@ -194,7 +194,7 @@ Ordered by value. Each item says where to start and what "done" means.
 
 ## Panel languages
 
-The panel UI is translated through dictionaries in `src/ui/locales/` (`en` is the only bundled language, the source and the fallback for any missing key). A project picks the language in its settings:
+The panel UI is translated through dictionaries in `src/ui/locales/` (see `ui/language.ts` for choosing, `core/i18n.ts` for schema labels) (`en` is the only bundled language, the source and the fallback for any missing key). A project picks the language in its settings:
 
 ```ts
 defineConfig({

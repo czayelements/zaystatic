@@ -4,6 +4,7 @@ import * as React from "react";
 
 import type { Api } from "./api";
 import { resolveMessages } from "./i18n";
+import { availableLanguages, storeLanguage } from "./language";
 import type { Messages } from "./i18n";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
@@ -25,6 +26,10 @@ type Ctx = {
   toast: (kind: Toast["kind"], text: string) => void;
   refreshSchema: () => void;
   /** Increments when the current view must re-read its data (after publish / discard). */
+  /** Current panel language and the ones the user can switch to. */
+  lang: string;
+  languages: string[];
+  setLang: (code: string) => void;
   viewTick: number;
   reloadView: () => void;
   /** Draft count changed (saved/published/discarded): refresh the sidebar badge. */
@@ -51,6 +56,8 @@ export function ZayProvider({
   session,
   editors,
   refreshSchema,
+  lang,
+  onLanguage,
   children,
 }: {
   api: Api;
@@ -58,10 +65,14 @@ export function ZayProvider({
   session: SessionInfo;
   editors: EditorMap;
   refreshSchema: () => void;
+  lang: string;
+  /** Called with the new language once the user confirmed (unsaved changes ask first). */
+  onLanguage: (code: string) => void;
   children: React.ReactNode;
 }) {
   const basePath = session.basePath.replace(/\/$/, "");
-  const t = React.useMemo(() => resolveMessages(session.language, session.messages), [session.language, session.messages]);
+  const t = React.useMemo(() => resolveMessages(lang, session.translations?.[lang]), [lang, session.translations]);
+  const languages = React.useMemo(() => availableLanguages(session), [session]);
   const [path, setPath] = React.useState(() => strip(window.location.pathname, basePath));
   const guard = React.useRef<(() => boolean) | null>(null);
   const [toasts, setToasts] = React.useState<Toast[]>([]);
@@ -105,13 +116,27 @@ export function ZayProvider({
     window.setTimeout(() => setToasts((list) => list.filter((x) => x.id !== id)), kind === "error" ? 7000 : 3500);
   }, []);
 
+  const setLang = React.useCallback(
+    (code: string) => {
+      if (code === lang) return;
+      if (guard.current?.() && !window.confirm(t.leave)) return;
+      storeLanguage(code);
+      onLanguage(code);
+    },
+    [lang, onLanguage, t.leave],
+  );
+
+  React.useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
   const setGuard = React.useCallback((fn: (() => boolean) | null) => {
     guard.current = fn;
   }, []);
 
   const value = React.useMemo<Ctx>(
-    () => ({ api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, viewTick, reloadView, draftTick, bumpDrafts }),
-    [api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, viewTick, reloadView, draftTick, bumpDrafts],
+    () => ({ api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts }),
+    [api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts],
   );
 
   return (

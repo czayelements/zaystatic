@@ -32,6 +32,7 @@ import { fsStore } from "./store-fs";
 import { githubStore } from "./store-github";
 import { PullRequests, branchFor, draftStore, workflowOf } from "./workflow";
 import type { Draft, DraftStore, Target } from "./workflow";
+import { localizeFile, localizeSchema } from "./i18n";
 import { HttpError, resolveConfig } from "./types";
 import type { Store, ZayConfig } from "./types";
 
@@ -126,7 +127,9 @@ export function createHandler(input: ZayConfig) {
         branch: config.repo?.branch ?? "main",
         name: config.name ?? "zay-static",
         language: config.language ?? "en",
-        messages: config.translations?.[config.language ?? "en"],
+        /* Everything the panel needs to switch language without another round trip. */
+        translations: config.translations ?? {},
+        autoDetectLanguage: config.autoDetectLanguage === true,
         apiPath: api,
         basePath: config.basePath,
         workflow: mode === "github" ? workflowOf(config).mode : "direct",
@@ -234,17 +237,15 @@ export function createHandler(input: ZayConfig) {
       return json({ ok: true, url, size: data.byteLength, contentType: type });
     }
 
+    /* Panel language for label resolution: `?lang=de`, falling back to the configured language. */
+    const lang = (url.searchParams.get("lang") ?? config.language ?? "en").slice(0, 16);
+
     if (parts[0] === "schema" && method === "GET") {
       return json({
         locales: config.locales,
         defaultLocale: config.defaultLocale,
         localeNames: config.localeNames ?? {},
-        groups: config.groups,
-        collections: config.collections,
-        singletons: config.singletons,
-        fileSets: Object.fromEntries(
-          Object.entries(config.fileSets).map(([k, v]) => [k, { label: v.label, group: v.group }]),
-        ),
+        ...localizeSchema(config, lang),
       });
     }
 
@@ -277,11 +278,14 @@ export function createHandler(input: ZayConfig) {
 
     if (parts[0] === "filesets" && parts[1]) {
       const [, name, file] = parts;
-      if (!file && method === "GET") return json({ files: await listFileSetFiles(ctx, name!) });
+      if (!file && method === "GET") return json({ files: (await listFileSetFiles(ctx, name!)).map((f) => localizeFile(f, lang)) });
       if (file) {
         const st = storeFor({ kind: "f", name: name!, file });
         const c = { config, store: st };
-        if (method === "GET") return json(await withDraft(st, await readFileSet(c, name!, file)));
+        if (method === "GET") {
+          const data = await readFileSet(c, name!, file);
+          return json(await withDraft(st, { ...data, file: localizeFile(data.file, lang) }));
+        }
         if (method === "PUT") {
           return json({ ok: true, ...(await writeFileSet(c, name!, file, ((await body()).docs ?? {}) as Record<string, unknown>)) });
         }

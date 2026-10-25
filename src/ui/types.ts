@@ -1,13 +1,16 @@
 import type { Fields } from "../schema/dsl.mjs";
 import type { Collection, Singleton } from "../core/types";
 
+/** The server resolves every label to the panel's language before sending the schema. */
+type Resolved<T> = Omit<T, "label"> & { label: string };
+
 export type Schema = {
   locales: string[];
   defaultLocale: string;
   localeNames: Record<string, string>;
   groups: { id: string; label: string }[];
-  collections: Record<string, Collection>;
-  singletons: Record<string, Singleton>;
+  collections: Record<string, Resolved<Collection>>;
+  singletons: Record<string, Resolved<Singleton>>;
   fileSets: Record<string, { label: string; group?: string }>;
 };
 
@@ -21,8 +24,10 @@ export type SessionInfo = {
   workflow: "direct" | "pull-request";
   /** Panel UI language code (see `locales/`). */
   language: string;
-  /** The host's own string overrides / extra language, from `translations` in the config. */
-  messages?: Record<string, string>;
+  /** The project's own strings per language, from `translations` in the config. */
+  translations: Record<string, Record<string, string>>;
+  /** Start in the browser's language when available. */
+  autoDetectLanguage: boolean;
   apiPath: string;
   basePath: string;
   /** Limits when uploads are enabled; null when disabled (paste-a-link only). */

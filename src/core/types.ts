@@ -1,9 +1,13 @@
 import type { Fields } from "../schema/dsl.mjs";
+import type { Label } from "./i18n";
 import type { MediaConfig } from "./media";
+
+export type { Label };
 
 /** A sidebar collection: the files in a folder are its entries. */
 export type Collection = {
-  label: string;
+  /** A string, or a map of language -> text (`{ en: "Posts", de: "Beiträge" }`). */
+  label: Label;
   /** Folder relative to the repository root, e.g. "content/blog". */
   dir: string;
   /**
@@ -30,13 +34,13 @@ export type Collection = {
 
 /** Single-file content (settings, menus …). */
 export type Singleton = {
-  label: string;
+  label: Label;
   file: string;
   fields: Fields;
   group?: string;
 };
 
-export type FileSetFile = { name: string; label: string; path: string };
+export type FileSetFile = { name: string; label: Label; path: string };
 
 /**
  * Files with the same shape in every language (UI strings, for example). The
@@ -44,17 +48,17 @@ export type FileSetFile = { name: string; label: string; path: string };
  * Path templates use `{locale}` (and `{name}` with `scan`).
  */
 export type FileSet = {
-  label: string;
+  label: Label;
   group?: string;
   files?: FileSetFile[];
   /** Every `.json` in the folder counts as a file. The `dir` and `path` templates contain `{locale}`. */
-  scan?: { dir: string; path: string; labels?: Record<string, string> };
+  scan?: { dir: string; path: string; labels?: Record<string, Label> };
 };
 
 /** The content model: which kinds of content exist and their fields. Can live in a file of its own, apart from the settings (ZayConfig). */
 export type ZaySchema = {
   /** Sidebar groups (they appear in the order given here). */
-  groups?: { id: string; label: string }[];
+  groups?: { id: string; label: Label }[];
   collections?: Record<string, Collection>;
   singletons?: Record<string, Singleton>;
   fileSets?: Record<string, FileSet>;
@@ -89,6 +93,12 @@ export type ZayConfig = ZaySchema & {
   media?: MediaConfig;
   /** Language of the panel UI (default "en"; bundled: "en", "tr"). */
   language?: string;
+  /**
+   * Let the panel start in the visitor's browser language when it is one of the
+   * available languages (bundled or in `translations`). A language picked in the
+   * panel always wins. Default false.
+   */
+  autoDetectLanguage?: boolean;
   /**
    * Your own panel strings, keyed by language code. Add a language the package
    * does not ship yet, or reword any string; missing keys fall back to English.

@@ -1286,3 +1286,25 @@
 .zs-review-row .zs-row-main {
   padding: 2px 0;
 }
+
+/* ── Language switcher ─────────────────────────── */
+.zs-lang {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--zs-line);
+  border-radius: 9px;
+  color: var(--zs-muted);
+}
+.zs-lang select {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--zs-ink);
+  font: inherit;
+  cursor: pointer;
+}
