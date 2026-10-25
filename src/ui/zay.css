@@ -1,0 +1,1042 @@
+/* zay-static — kendi başına yeten stil. Tüm sınıflar `zs-` önekli; yalnız `.zs-root` içinde etkili.
+   Özelleştirme: --zs-* değişkenlerini `.zs-root` üzerinde ez. */
+
+.zs-root {
+  --zs-bg: #f6f5f1;
+  --zs-surface: #ffffff;
+  --zs-sunken: #efede7;
+  --zs-ink: #1b1d1a;
+  --zs-muted: #6c7067;
+  --zs-line: #e3e1da;
+  --zs-line-strong: #cfccc2;
+  --zs-accent: #4d6a55;
+  --zs-accent-ink: #ffffff;
+  --zs-accent-soft: #e4ece5;
+  --zs-danger: #b3382c;
+  --zs-radius: 10px;
+  --zs-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 20px rgb(0 0 0 / 0.05);
+  --zs-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --zs-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  min-height: 100vh;
+  background: var(--zs-bg);
+  color: var(--zs-ink);
+  font: 14px/1.5 var(--zs-font);
+  -webkit-font-smoothing: antialiased;
+}
+@media (prefers-color-scheme: dark) {
+  .zs-root {
+    --zs-bg: #121412;
+    --zs-surface: #1a1c19;
+    --zs-sunken: #161815;
+    --zs-ink: #ecece6;
+    --zs-muted: #9a9e93;
+    --zs-line: #2a2d28;
+    --zs-line-strong: #3b3f38;
+    --zs-accent: #8db498;
+    --zs-accent-ink: #11160f;
+    --zs-accent-soft: #232c25;
+    --zs-danger: #e2766b;
+    --zs-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+  }
+}
+.zs-root *,
+.zs-root *::before,
+.zs-root *::after {
+  box-sizing: border-box;
+}
+.zs-root a {
+  color: inherit;
+  text-decoration: none;
+}
+.zs-root button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.zs-root h1,
+.zs-root h3,
+.zs-root h4,
+.zs-root h5,
+.zs-root p,
+.zs-root ul {
+  margin: 0;
+  padding: 0;
+}
+.zs-root ul {
+  list-style: none;
+}
+.zs-root code,
+.zs-root kbd {
+  font-family: var(--zs-mono);
+}
+
+.zs-grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.zs-muted {
+  color: var(--zs-muted);
+}
+.zs-error {
+  color: var(--zs-danger);
+}
+.zs-pad {
+  padding: 24px 0;
+}
+.zs-center {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.zs-mono {
+  font-family: var(--zs-mono);
+  font-size: 13px;
+}
+
+/* ── Giriş ─────────────────────────────────────── */
+.zs-login {
+  width: min(380px, 100%);
+  background: var(--zs-surface);
+  border: 1px solid var(--zs-line);
+  border-radius: 16px;
+  padding: 36px 32px;
+  display: grid;
+  gap: 16px;
+  text-align: center;
+  box-shadow: var(--zs-shadow);
+}
+.zs-login h1 {
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+/* ── İskelet ───────────────────────────────────── */
+.zs-app {
+  display: grid;
+  grid-template-columns: 264px minmax(0, 1fr);
+  min-height: 100vh;
+}
+.zs-topbar,
+.zs-scrim {
+  display: none;
+}
+.zs-side {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 12px 12px;
+  background: var(--zs-surface);
+  border-right: 1px solid var(--zs-line);
+  overflow-y: auto;
+}
+.zs-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 8px;
+}
+.zs-brand b {
+  display: block;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.zs-brand small {
+  color: var(--zs-muted);
+  font-size: 11px;
+}
+.zs-logo {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--zs-accent);
+  color: var(--zs-accent-ink);
+  font-weight: 700;
+}
+.zs-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 10px;
+  background: var(--zs-sunken);
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--zs-muted);
+}
+.zs-search:focus-within {
+  border-color: var(--zs-line-strong);
+  background: var(--zs-surface);
+}
+.zs-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--zs-ink);
+  font: inherit;
+}
+.zs-side nav {
+  display: grid;
+  gap: 14px;
+  flex: 1;
+  align-content: start;
+}
+.zs-nav-group h5 {
+  padding: 0 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--zs-muted);
+}
+.zs-nav-item {
+  display: block;
+  padding: 6px 8px;
+  border-radius: 7px;
+  color: var(--zs-ink);
+}
+.zs-nav-item:hover {
+  background: var(--zs-sunken);
+}
+.zs-nav-item.is-on {
+  background: var(--zs-accent-soft);
+  color: var(--zs-accent);
+  font-weight: 600;
+}
+.zs-side-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 8px 2px;
+  border-top: 1px solid var(--zs-line);
+  color: var(--zs-muted);
+  font-size: 13px;
+}
+.zs-side-foot img {
+  border-radius: 50%;
+}
+.zs-side-foot button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+}
+.zs-side-foot button:hover {
+  background: var(--zs-sunken);
+}
+.zs-main {
+  min-width: 0;
+}
+.zs-content {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 32px 140px;
+}
+
+/* ── Sayfa başlığı ─────────────────────────────── */
+.zs-page-head {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.zs-page-head h1 {
+  font-size: 26px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.zs-crumbs {
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: var(--zs-muted);
+}
+.zs-crumbs a:hover {
+  color: var(--zs-ink);
+}
+.zs-sub {
+  margin-top: 4px;
+  color: var(--zs-muted);
+}
+.zs-sub code {
+  font-size: 12px;
+}
+.zs-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Düğmeler ──────────────────────────────────── */
+.zs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--zs-line-strong);
+  border-radius: 9px;
+  background: var(--zs-surface);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.zs-btn:hover:not(:disabled) {
+  background: var(--zs-sunken);
+}
+.zs-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.zs-btn-primary {
+  background: var(--zs-accent);
+  border-color: var(--zs-accent);
+  color: var(--zs-accent-ink);
+}
+.zs-btn-primary:hover:not(:disabled) {
+  background: var(--zs-accent);
+  filter: brightness(1.08);
+}
+.zs-btn-primary kbd {
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.18);
+  font-size: 11px;
+  font-weight: 500;
+}
+.zs-btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.zs-btn-lg {
+  height: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+}
+.zs-danger {
+  color: var(--zs-danger);
+}
+.zs-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--zs-accent);
+  font-size: 13px;
+  font-weight: 600;
+}
+.zs-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Liste ve panolar ──────────────────────────── */
+.zs-toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.zs-toolbar .zs-search {
+  flex: 1;
+  max-width: 420px;
+  background: var(--zs-surface);
+  border-color: var(--zs-line);
+}
+.zs-rows {
+  background: var(--zs-surface);
+  border: 1px solid var(--zs-line);
+  border-radius: var(--zs-radius);
+  overflow: hidden;
+}
+.zs-rows li + li {
+  border-top: 1px solid var(--zs-line);
+}
+.zs-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+}
+.zs-row:hover {
+  background: var(--zs-sunken);
+}
+.zs-row-main {
+  display: grid;
+  min-width: 0;
+  flex: 1;
+}
+.zs-row-main b {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zs-row-main small {
+  color: var(--zs-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.zs-pill {
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: var(--zs-sunken);
+  border: 1px solid var(--zs-line-strong);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--zs-muted);
+}
+.zs-locales {
+  display: flex;
+  gap: 3px;
+}
+.zs-locales span {
+  padding: 1px 5px;
+  border-radius: 5px;
+  border: 1px solid var(--zs-line);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--zs-line-strong);
+}
+.zs-locales span.is-on {
+  background: var(--zs-accent-soft);
+  border-color: transparent;
+  color: var(--zs-accent);
+}
+.zs-dash {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.zs-card {
+  background: var(--zs-surface);
+  border: 1px solid var(--zs-line);
+  border-radius: var(--zs-radius);
+  padding: 16px 18px;
+}
+.zs-card h3 {
+  margin-bottom: 8px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--zs-muted);
+}
+.zs-card li a {
+  display: block;
+  padding: 5px 0;
+}
+.zs-card li a:hover {
+  color: var(--zs-accent);
+}
+
+/* ── Dil sekmeleri ─────────────────────────────── */
+.zs-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 18px;
+  padding: 4px;
+  background: var(--zs-sunken);
+  border-radius: 11px;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.zs-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--zs-muted);
+}
+.zs-tabs button b {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+.zs-tabs button span:last-child {
+  font-size: 13px;
+}
+.zs-tabs button.is-on {
+  background: var(--zs-surface);
+  color: var(--zs-ink);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.zs-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--zs-line-strong);
+}
+.zs-dot.is-filled {
+  background: var(--zs-accent);
+  border-color: var(--zs-accent);
+}
+.zs-note {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 9px 12px;
+  background: var(--zs-accent-soft);
+  border-radius: 9px;
+  color: var(--zs-muted);
+  font-size: 13px;
+}
+.zs-note .zs-link {
+  margin-left: auto;
+}
+
+/* ── Form ──────────────────────────────────────── */
+.zs-form {
+  display: grid;
+  gap: 18px;
+}
+.zs-field {
+  display: grid;
+  gap: 6px;
+}
+.zs-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.zs-hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--zs-muted);
+}
+.zs-input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid var(--zs-line-strong);
+  border-radius: 9px;
+  background: var(--zs-surface);
+  color: var(--zs-ink);
+  font: inherit;
+  outline: 0;
+}
+.zs-input:focus {
+  border-color: var(--zs-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--zs-accent) 22%, transparent);
+}
+.zs-input-narrow {
+  width: auto;
+  min-width: 200px;
+  max-width: 100%;
+}
+.zs-area {
+  resize: vertical;
+  line-height: 1.55;
+}
+.zs-ref {
+  padding-left: 10px;
+  border-left: 2px solid var(--zs-line-strong);
+  color: var(--zs-muted);
+  font-size: 12.5px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-line;
+}
+.zs-slug {
+  margin-bottom: 20px;
+  max-width: 520px;
+}
+.zs-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 99px;
+  background: var(--zs-line-strong);
+  transition: background 0.15s;
+}
+.zs-switch span {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+.zs-switch.is-on {
+  background: var(--zs-accent);
+}
+.zs-switch.is-on span {
+  transform: translateX(18px);
+}
+.zs-seg {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  background: var(--zs-sunken);
+  border-radius: 10px;
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+}
+.zs-seg button {
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--zs-muted);
+  font-size: 13px;
+}
+.zs-seg button.is-on {
+  background: var(--zs-surface);
+  color: var(--zs-ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.zs-seg-sm button {
+  height: 28px;
+}
+.zs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.zs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px 3px 10px;
+  border-radius: 99px;
+  background: var(--zs-accent-soft);
+  color: var(--zs-accent);
+  font-size: 13px;
+}
+.zs-chip button {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  line-height: 1;
+}
+.zs-chip button:hover {
+  background: rgb(0 0 0 / 0.08);
+}
+.zs-group {
+  margin: 0;
+  padding: 14px 16px 16px;
+  border: 1px solid var(--zs-line);
+  border-radius: var(--zs-radius);
+  background: color-mix(in srgb, var(--zs-surface) 55%, transparent);
+  min-width: 0;
+}
+.zs-group > legend {
+  padding: 0 8px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.zs-inline {
+  display: grid;
+  gap: 6px;
+}
+.zs-inline-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.zs-badge {
+  flex: 0 0 auto;
+  min-width: 72px;
+  margin-top: 8px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--zs-sunken);
+  color: var(--zs-muted);
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+/* ── Liste elemanları ──────────────────────────── */
+.zs-list {
+  display: grid;
+  gap: 10px;
+}
+.zs-list-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.zs-list-head h4 {
+  font-size: 13px;
+  font-weight: 600;
+}
+.zs-count {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--zs-sunken);
+  color: var(--zs-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+.zs-list-body {
+  display: grid;
+  gap: 8px;
+}
+.zs-item {
+  background: var(--zs-surface);
+  border: 1px solid var(--zs-line);
+  border-radius: var(--zs-radius);
+}
+.zs-item.is-dragging {
+  position: relative;
+  z-index: 5;
+  box-shadow: var(--zs-shadow);
+  border-color: var(--zs-accent);
+}
+.zs-item-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 6px 5px 4px;
+}
+.zs-handle {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 32px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--zs-muted);
+  cursor: grab;
+  touch-action: none;
+}
+.zs-handle:hover {
+  background: var(--zs-sunken);
+  color: var(--zs-ink);
+}
+.zs-handle:active {
+  cursor: grabbing;
+}
+.zs-item-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+}
+.zs-item-title:hover {
+  background: var(--zs-sunken);
+}
+.zs-chev {
+  flex: 0 0 auto;
+  transition: transform 0.12s;
+  color: var(--zs-muted);
+}
+.zs-chev.is-open {
+  transform: rotate(90deg);
+}
+.zs-item-no {
+  flex: 0 0 auto;
+  min-width: 22px;
+  color: var(--zs-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.zs-item-no-plain {
+  text-align: center;
+}
+.zs-item-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.zs-item-inline {
+  padding: 3px 0;
+}
+.zs-item-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0.55;
+}
+.zs-item:hover .zs-item-actions,
+.zs-item:focus-within .zs-item-actions {
+  opacity: 1;
+}
+.zs-item-actions button {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--zs-muted);
+}
+.zs-item-actions button:hover {
+  background: var(--zs-sunken);
+  color: var(--zs-ink);
+}
+.zs-item-actions button:last-child:hover {
+  color: var(--zs-danger);
+}
+.zs-item-body {
+  padding: 6px 16px 16px 44px;
+  border-top: 1px solid var(--zs-line);
+  padding-top: 16px;
+}
+.zs-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  border: 1px dashed var(--zs-line-strong);
+  border-radius: 9px;
+  background: transparent;
+  color: var(--zs-muted);
+  font-weight: 600;
+}
+.zs-add:hover {
+  border-color: var(--zs-accent);
+  color: var(--zs-accent);
+  background: var(--zs-accent-soft);
+}
+
+/* ── Kaydet çubuğu ─────────────────────────────── */
+.zs-savebar {
+  position: fixed;
+  left: 264px;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
+  padding: 12px 24px 16px;
+  background: linear-gradient(to top, var(--zs-bg) 60%, transparent);
+  pointer-events: none;
+}
+.zs-savebar-in {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 8px 8px 8px 16px;
+  background: var(--zs-surface);
+  border: 1px solid var(--zs-line-strong);
+  border-radius: 13px;
+  box-shadow: var(--zs-shadow);
+  pointer-events: auto;
+}
+.zs-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--zs-muted);
+  font-size: 13px;
+}
+.zs-state.is-dirty {
+  color: var(--zs-ink);
+  font-weight: 600;
+}
+.zs-state.is-dirty::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #d99a2b;
+}
+
+/* ── Bildirimler ───────────────────────────────── */
+.zs-toasts {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 50;
+  display: grid;
+  gap: 8px;
+  max-width: min(380px, calc(100vw - 32px));
+}
+.zs-toast {
+  padding: 11px 14px;
+  border-radius: 10px;
+  background: var(--zs-ink);
+  color: var(--zs-bg);
+  box-shadow: var(--zs-shadow);
+  font-size: 13.5px;
+}
+.zs-toast-error {
+  background: var(--zs-danger);
+  color: #fff;
+}
+
+/* ── Küçük ekran ───────────────────────────────── */
+@media (max-width: 860px) {
+  .zs-app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .zs-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 48px;
+    padding: 0 12px;
+    background: var(--zs-surface);
+    border-bottom: 1px solid var(--zs-line);
+  }
+  .zs-topbar button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+  }
+  .zs-side {
+    position: fixed;
+    z-index: 40;
+    inset: 0 auto 0 0;
+    width: 280px;
+    transform: translateX(-100%);
+    transition: transform 0.18s;
+  }
+  .zs-app.is-menu .zs-side {
+    transform: none;
+  }
+  .zs-app.is-menu .zs-scrim {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 35;
+    border: 0;
+    background: rgb(0 0 0 / 0.4);
+  }
+  .zs-content {
+    padding: 20px 16px 140px;
+  }
+  .zs-savebar {
+    left: 0;
+    padding: 10px 12px 14px;
+  }
+  .zs-page-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .zs-item-body {
+    padding-left: 16px;
+  }
+  .zs-inline-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 3px;
+  }
+  .zs-badge {
+    margin-top: 0;
+    align-self: flex-start;
+  }
+}
+
+/* Izgara çocukları içeriğe göre genişleyip taşmasın. */
+.zs-form > *,
+.zs-list,
+.zs-list-body,
+.zs-list-body > *,
+.zs-item-body,
+.zs-field {
+  min-width: 0;
+}
+.zs-hint {
+  overflow-wrap: anywhere;
+}
+
+/* ── Görsel alanı ──────────────────────────────── */
+.zs-image {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px;
+  border: 1px dashed var(--zs-line-strong);
+  border-radius: var(--zs-radius);
+  background: color-mix(in srgb, var(--zs-surface) 55%, transparent);
+}
+.zs-image.is-over {
+  border-color: var(--zs-accent);
+  background: var(--zs-accent-soft);
+}
+.zs-image-preview {
+  flex: 0 0 auto;
+  width: 112px;
+  height: 84px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--zs-line);
+  background:
+    conic-gradient(#8881 25%, transparent 0 50%, #8881 0 75%, transparent 0) 0 0 / 14px 14px,
+    var(--zs-surface);
+}
+.zs-image-empty {
+  display: grid;
+  place-items: center;
+  color: var(--zs-muted);
+  font-size: 12px;
+}
+.zs-image-side {
+  display: grid;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.zs-image-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.zs-btn-sm {
+  height: 30px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+@media (max-width: 860px) {
+  .zs-image {
+    flex-direction: column;
+  }
+  .zs-image-preview {
+    width: 100%;
+    height: 140px;
+  }
+  .zs-image-side {
+    width: 100%;
+  }
+}

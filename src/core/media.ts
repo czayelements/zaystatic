@@ -1,0 +1,203 @@
+import { createHash, createHmac, randomBytes } from "node:crypto";
+
+import type { Store } from "./types";
+
+/**
+ * Görsel yükleme. Panel dosyayı sunucuya gönderir; sunucu doğrular
+ * (boyut, tür, dosyanın gerçek baytları) ve bir MediaAdapter'a verir.
+ * Adapter yalnızca "bu baytları şu anahtarla sakla, herkese açık adresini ver" der:
+ * S3 uyumlu her depolama (AWS S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean
+ * Spaces …) ya da doğrudan depo (`public/uploads`) kullanılabilir.
+ */
+
+export type MediaFile = { key: string; contentType: string; data: Uint8Array };
+export type MediaContext = { store: Store };
+
+export interface MediaAdapter {
+  upload(file: MediaFile, ctx: MediaContext): Promise<{ url: string }>;
+}
+
+export type MediaConfig = {
+  adapter: MediaAdapter;
+  /** Varsayılan 5 MB (Netlify/Vercel işlev gövdesi sınırları ~6 MB). */
+  maxBytes?: number;
+  /** Varsayılan: png, jpeg, webp, gif, avif. SVG betik taşıyabildiği için açıkça eklenmeli. */
+  accept?: string[];
+};
+
+export const DEFAULT_ACCEPT = ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"];
+export const DEFAULT_MAX_BYTES = 5 * 1024 * 1024;
+
+/* ── Dosya türü: istemcinin söylediğine değil baytlara bakılır ───── */
+
+const EXT: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/gif": "gif",
+  "image/avif": "avif",
+  "image/svg+xml": "svg",
+};
+
+export function sniffImage(b: Uint8Array): string | null {
+  const at = (i: number, s: string) => [...s].every((c, j) => b[i + j] === c.charCodeAt(0));
+  if (b.length > 8 && b[0] === 0x89 && at(1, "PNG")) return "image/png";
+  if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b.length > 6 && (at(0, "GIF87a") || at(0, "GIF89a"))) return "image/gif";
+  if (b.length > 12 && at(0, "RIFF") && at(8, "WEBP")) return "image/webp";
+  if (b.length > 12 && at(4, "ftyp") && (at(8, "avif") || at(8, "avis"))) return "image/avif";
+  const head = Buffer.from(b.subarray(0, 512)).toString("utf8").trimStart().toLowerCase();
+  if (head.startsWith("<svg") || (head.startsWith("<?xml") && head.includes("<svg"))) return "image/svg+xml";
+  return null;
+}
+
+/** SVG içinde betik/olay yok mu? (Savunma amaçlı kaba denetim; güvenilmeyen SVG kabul etme.) */
+export const svgIsSafe = (b: Uint8Array) =>
+  !/<script|javascript:|\son\w+\s*=|<foreignobject|<iframe|<embed|<object/i.test(Buffer.from(b).toString("utf8"));
+
+export const mediaKey = (name: string, ext: string, now = new Date()) => {
+  const slug =
+    name
+      .replace(/\.[^.]+$/, "")
+      .normalize("NFKD")
+      .replace(/[̀-ͯ]/g, "")
+      .replace(/[ıİ]/g, "i")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 48) || "image";
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  return `${now.getUTCFullYear()}/${mm}/${slug}-${randomBytes(4).toString("hex")}.${ext}`;
+};
+
+export const extFor = (type: string) => EXT[type] ?? "bin";
+
+/* ── AWS Signature V4 ──────────────────────────────────────────── */
+
+const sha256 = (data: string | Uint8Array) => createHash("sha256").update(data).digest("hex");
+const hmac = (key: string | Buffer, data: string) => createHmac("sha256", key).update(data).digest();
+
+export type SignInput = {
+  method: string;
+  url: URL;
+  headers: Record<string, string>;
+  payloadHash: string;
+  region: string;
+  service?: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  date?: Date;
+};
+
+/** İmzalı başlıkları döndürür (x-amz-date, x-amz-content-sha256, authorization dahil). */
+export function signV4(i: SignInput): Record<string, string> {
+  const service = i.service ?? "s3";
+  const amzDate = (i.date ?? new Date()).toISOString().replace(/[:-]|\.\d{3}/g, "");
+  const day = amzDate.slice(0, 8);
+  const headers: Record<string, string> = {};
+  for (const [k, v] of Object.entries({ ...i.headers, host: i.headers.host ?? i.url.host })) headers[k.toLowerCase()] = String(v).trim();
+  headers["x-amz-date"] = headers["x-amz-date"] ?? amzDate;
+  headers["x-amz-content-sha256"] = i.payloadHash;
+
+  const names = Object.keys(headers).sort();
+  const canonicalHeaders = names.map((n) => `${n}:${headers[n]}\n`).join("");
+  const signedHeaders = names.join(";");
+  const path = i.url.pathname
+    .split("/")
+    .map((seg) => encodeURIComponent(decodeURIComponent(seg)).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`))
+    .join("/");
+  const query = [...i.url.searchParams.entries()]
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join("&");
+  const canonical = [i.method, path, query, canonicalHeaders, signedHeaders, i.payloadHash].join("\n");
+
+  const scope = `${day}/${i.region}/${service}/aws4_request`;
+  const toSign = ["AWS4-HMAC-SHA256", headers["x-amz-date"], scope, sha256(canonical)].join("\n");
+  const kDate = hmac(`AWS4${i.secretAccessKey}`, day);
+  const key = hmac(hmac(hmac(kDate, i.region), service), "aws4_request");
+  const signature = createHmac("sha256", key).update(toSign).digest("hex");
+  headers.authorization = `AWS4-HMAC-SHA256 Credential=${i.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  return headers;
+}
+
+/* ── Adapter: S3 uyumlu depolama ───────────────────────────────── */
+
+export type S3Options = {
+  /** Örn. https://<hesap>.r2.cloudflarestorage.com, http://localhost:9000 (MinIO). Boşsa AWS. */
+  endpoint?: string;
+  region?: string;
+  bucket: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  /** Yüklenen dosyaların herkese açık kökü (CDN), örn. https://cdn.example.com */
+  publicUrl?: string;
+  /** Anahtar öneki, örn. "uploads/". */
+  prefix?: string;
+  /** true (varsayılan): endpoint/bucket/key. false: bucket.endpoint/key (AWS sanal host). */
+  pathStyle?: boolean;
+  cacheControl?: string;
+};
+
+export function s3Media(o: S3Options): MediaAdapter {
+  const region = o.region ?? "us-east-1";
+  const endpoint = new URL(o.endpoint ?? `https://s3.${region}.amazonaws.com`);
+  const pathStyle = o.pathStyle ?? true;
+  const prefix = (o.prefix ?? "uploads/").replace(/^\/+/, "");
+  const cache = o.cacheControl ?? "public, max-age=31536000, immutable"; // dosya adı içerik özeti taşıyor: değişmez
+
+  return {
+    async upload(file) {
+      const key = `${prefix}${file.key}`;
+      const url = pathStyle
+        ? new URL(`${endpoint.origin}${endpoint.pathname.replace(/\/$/, "")}/${o.bucket}/${key}`)
+        : new URL(`${endpoint.protocol}//${o.bucket}.${endpoint.host}${endpoint.pathname.replace(/\/$/, "")}/${key}`);
+      const headers = signV4({
+        method: "PUT",
+        url,
+        headers: { "content-type": file.contentType, "cache-control": cache },
+        payloadHash: sha256(file.data),
+        region,
+        accessKeyId: o.accessKeyId,
+        secretAccessKey: o.secretAccessKey,
+      });
+      const { host: _host, ...send } = headers; // fetch host başlığını kendi koyar
+      void _host;
+      const res = await fetch(url, { method: "PUT", headers: send, body: Buffer.from(file.data), cache: "no-store" });
+      if (!res.ok) throw new Error(`S3 yükleme başarısız: ${res.status} ${(await res.text().catch(() => "")).slice(0, 160)}`);
+      const base = o.publicUrl?.replace(/\/$/, "");
+      return { url: base ? `${base}/${key}` : url.toString() };
+    },
+  };
+}
+
+/** ZAY_S3_* ortam değişkenlerinden; bucket yoksa null (başka adapter seçilir). */
+export function s3MediaFromEnv(env: Record<string, string | undefined> = process.env): MediaAdapter | null {
+  if (!env.ZAY_S3_BUCKET || !env.ZAY_S3_ACCESS_KEY_ID || !env.ZAY_S3_SECRET_ACCESS_KEY) return null;
+  return s3Media({
+    endpoint: env.ZAY_S3_ENDPOINT,
+    region: env.ZAY_S3_REGION ?? "auto",
+    bucket: env.ZAY_S3_BUCKET,
+    accessKeyId: env.ZAY_S3_ACCESS_KEY_ID,
+    secretAccessKey: env.ZAY_S3_SECRET_ACCESS_KEY,
+    publicUrl: env.ZAY_S3_PUBLIC_URL,
+    prefix: env.ZAY_S3_PREFIX,
+    pathStyle: env.ZAY_S3_PATH_STYLE !== "false",
+  });
+}
+
+/* ── Adapter: depoya commit (public/uploads) ───────────────────── */
+
+export function repoMedia(o: { dir?: string; urlPrefix?: string } = {}): MediaAdapter {
+  const dir = (o.dir ?? "public/uploads").replace(/\/$/, "");
+  const urlPrefix = (o.urlPrefix ?? "/uploads").replace(/\/$/, "");
+  return {
+    async upload(file, { store }) {
+      await store.commit(
+        [{ path: `${dir}/${file.key}`, content: Buffer.from(file.data).toString("base64"), encoding: "base64" }],
+        `media: add ${file.key.split("/").pop()}`,
+      );
+      return { url: `${urlPrefix}/${file.key}` };
+    },
+  };
+}
