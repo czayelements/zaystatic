@@ -145,7 +145,7 @@ type RowProps = {
 
 function FieldRow(props: RowProps) {
   const { field, compact } = props;
-  const complex = field.type === "list" || (field.type === "object" && !field.inline);
+  const complex = field.type === "list" || field.type === "blocks" || (field.type === "object" && !field.inline);
   if (compact) {
     return (
       <div className="zs-inline-row">
@@ -522,8 +522,9 @@ function itemTitle(item: Field, value: unknown, summary: string | undefined, ind
     if (s) return s;
   }
   if (value && typeof value === "object") {
-    for (const v of Object.values(value as Doc)) if (typeof v === "string" && v.trim()) return v.trim().slice(0, 80);
-    for (const v of Object.values(value as Doc)) {
+    const entries = Object.entries(value as Doc).filter(([k]) => k !== "_type");
+    for (const [, v] of entries) if (typeof v === "string" && v.trim()) return v.trim().slice(0, 80);
+    for (const [, v] of entries) {
       if (v && typeof v === "object") {
         for (const w of Object.values(v as Doc)) if (typeof w === "string" && w.trim()) return w.trim().slice(0, 80);
       }
