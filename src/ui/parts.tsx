@@ -64,12 +64,15 @@ export function LocaleTabs({
   active,
   onChange,
   defaultLocale,
+  invalid = {},
 }: {
   locales: string[];
   docs: Record<string, unknown>;
   active: string;
   onChange: (l: string) => void;
   defaultLocale: string;
+  /** Languages with validation problems (shown once errors are visible). */
+  invalid?: Record<string, boolean>;
 }) {
   const { schema } = useZay();
   return (
@@ -78,7 +81,7 @@ export function LocaleTabs({
         const filled = l === defaultLocale || !isEmpty(docs[l]);
         return (
           <button key={l} type="button" role="tab" aria-selected={l === active} className={cx(l === active && "is-on")} onClick={() => onChange(l)}>
-            <span className={cx("zs-dot", filled && "is-filled")} />
+            <span className={cx("zs-dot", filled && "is-filled", invalid[l] && "is-invalid")} />
             <b>{l.toUpperCase()}</b>
             <span>{schema.localeNames[l] ?? l}</span>
           </button>
@@ -95,20 +98,27 @@ export function SaveBar({
   onSave,
   left,
   label,
+  issues = 0,
 }: {
   dirty: boolean;
   saving: boolean;
   onSave: () => void;
   left?: React.ReactNode;
   label?: string;
+  /** Number of visible validation problems. */
+  issues?: number;
 }) {
   const { t } = useZay();
   return (
     <div className="zs-savebar">
       <div className="zs-savebar-in">
-        <span className={cx("zs-state", dirty && "is-dirty")}>
-          {saving ? t.saving : dirty ? t.unsaved : (<><Check /> {t.saved}</>)}
-        </span>
+        {issues > 0 ? (
+          <span className="zs-state is-invalid">{t.issues.replace("{n}", String(issues))}</span>
+        ) : (
+          <span className={cx("zs-state", dirty && "is-dirty")}>
+            {saving ? t.saving : dirty ? t.unsaved : (<><Check /> {t.saved}</>)}
+          </span>
+        )}
         <span className="zs-grow" />
         {left}
         <button type="button" className="zs-btn zs-btn-primary" disabled={!dirty || saving} onClick={onSave}>

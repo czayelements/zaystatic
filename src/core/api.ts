@@ -53,7 +53,7 @@ export function createHandler(input: ZayConfig) {
     try {
       return await route(request);
     } catch (error) {
-      if (error instanceof HttpError) return json({ error: error.message }, { status: error.status });
+      if (error instanceof HttpError) return json({ error: error.message, ...(error.issues ? { issues: error.issues } : {}) }, { status: error.status });
       console.error("[zay-static]", error);
       return json({ error: (error as Error).message || "Beklenmeyen hata" }, { status: 500 });
     }

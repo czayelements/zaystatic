@@ -11,6 +11,9 @@ import { Plus, Search, Trash } from "./icons";
 import { ErrorBox, Loading, LocaleTabs, PageHeader, SaveBar, useAsync, useDirty, useSaveShortcut } from "./parts";
 import type { Docs, EntrySummary } from "./types";
 import { clone, cx, slugify } from "./util";
+import { ValidationProvider, toErrors, validateDocs } from "./validation";
+import type { ServerIssue } from "./api";
+import { ApiError } from "./api";
 
 type SaveResult = { ok: boolean; unchanged?: boolean; id?: string; url?: string; files?: number };
 
@@ -161,6 +164,18 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const [newSlug, setNewSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  const [showErrors, setShowErrors] = React.useState(false);
+
+  const localeFields = React.useCallback(
+    (l: string): Fields => (!col ? {} : l === def ? col.fields : translatableFields(col.fields)),
+    [col, def],
+  );
+  const issues = React.useMemo(
+    () => (col && docs ? validateDocs(docs, localeFields, localized ? schema.locales : [def], def) : {}),
+    [col, docs, localeFields, localized, schema.locales, def],
+  );
+  const issueCount = Object.values(issues).reduce((n, list) => n + list.length, 0);
+  const firstBad = (localized ? schema.locales : [def]).find((l) => (issues[l]?.length ?? 0) > 0);
 
   React.useEffect(() => {
     if (!col || isNew) return;
@@ -188,6 +203,12 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
       toast("error", t.addressHint);
       return;
     }
+    if (issueCount > 0) {
+      setShowErrors(true);
+      if (firstBad) setActive(firstBad);
+      toast("error", t.fixIssues.replace("{n}", String(issueCount)));
+      return;
+    }
     setSaving(true);
     try {
       const res = isNew
@@ -200,6 +221,11 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
         navigate(`/c/${name}/${effectiveSlug}`, { replace: true });
       }
     } catch (e) {
+      const server = e instanceof ApiError ? (e.issues as ServerIssue[] | undefined) : undefined;
+      if (server?.length) {
+        setShowErrors(true);
+        setActive(server[0]!.locale);
+      }
       toast("error", (e as Error).message);
     } finally {
       setSaving(false);
@@ -237,7 +263,8 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   if (!docs) return <Loading />;
 
   const translating = localized && active !== def;
-  const fieldsFor = translating ? translatableFields(col.fields) : col.fields;
+  const fieldsFor = localeFields(active);
+  const invalidTabs = showErrors ? Object.fromEntries(Object.entries(issues).map(([l, list]) => [l, list.length > 0])) : {};
   const showVisual = Boolean(Editor) && view === "visual";
 
   return (
@@ -285,7 +312,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
       )}
 
       {localized && !showVisual && (
-        <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={def} />
+        <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={def} invalid={invalidTabs} />
       )}
 
       {translating && (
@@ -306,6 +333,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
         </div>
       )}
 
+      <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues[active] ?? []) }}>
       <ListOpProvider value={localized && !translating ? onListOp : null}>
         {showVisual && Editor ? (
           <Editor
@@ -327,8 +355,9 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
           />
         )}
       </ListOpProvider>
+      </ValidationProvider>
 
-      <SaveBar dirty={dirty} saving={saving} onSave={save} label={isNew ? t.create : t.save} />
+      <SaveBar dirty={dirty} saving={saving} onSave={save} label={isNew ? t.create : t.save} issues={showErrors ? issueCount : 0} />
     </>
   );
 }
@@ -342,6 +371,12 @@ export function SingletonView({ name }: { name: string }) {
   const [saved, setSaved] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
+  const [showErrors, setShowErrors] = React.useState(false);
+  const def_ = schema.defaultLocale;
+  const issues = React.useMemo(
+    () => (def && doc ? validateDocs({ [def_]: doc }, () => def.fields, [def_], def_)[def_] ?? [] : []),
+    [def, doc, def_],
+  );
 
   React.useEffect(() => {
     let live = true;
@@ -361,6 +396,11 @@ export function SingletonView({ name }: { name: string }) {
   const dirty = useDirty(doc ?? undefined, saved);
   const save = async () => {
     if (!doc || saving || !dirty) return;
+    if (issues.length) {
+      setShowErrors(true);
+      toast("error", t.fixIssues.replace("{n}", String(issues.length)));
+      return;
+    }
     setSaving(true);
     try {
       const res = await api.put<SaveResult>(`/singletons/${name}`, { doc });
@@ -380,8 +420,10 @@ export function SingletonView({ name }: { name: string }) {
   return (
     <>
       <PageHeader title={def.label} />
-      <Form fields={def.fields} value={doc} onChange={setDoc} />
-      <SaveBar dirty={dirty} saving={saving} onSave={save} />
+      <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues) }}>
+        <Form fields={def.fields} value={doc} onChange={setDoc} />
+      </ValidationProvider>
+      <SaveBar dirty={dirty} saving={saving} onSave={save} issues={showErrors ? issues.length : 0} />
     </>
   );
 }

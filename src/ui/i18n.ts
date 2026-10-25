@@ -53,6 +53,16 @@ const en = {
   tooBig: "File is too large",
   badType: "Unsupported file type",
   clear: "Clear",
+  vRequired: "Required",
+  vMinLength: "At least {min} characters",
+  vMaxLength: "At most {max} characters",
+  vPattern: "Invalid format",
+  vMin: "Must be at least {min}",
+  vMax: "Must be at most {max}",
+  vMinItems: "Add at least {min}",
+  vMaxItems: "At most {max} allowed",
+  fixIssues: "Fix {n} issue(s) before saving",
+  issues: "{n} issue(s)",
 };
 
 const tr: typeof en = {
@@ -110,6 +120,16 @@ const tr: typeof en = {
   tooBig: "Dosya çok büyük",
   badType: "Desteklenmeyen dosya türü",
   clear: "Temizle",
+  vRequired: "Zorunlu alan",
+  vMinLength: "En az {min} karakter olmalı",
+  vMaxLength: "En çok {max} karakter olabilir",
+  vPattern: "Biçim geçersiz",
+  vMin: "En az {min} olmalı",
+  vMax: "En çok {max} olabilir",
+  vMinItems: "En az {min} öğe ekle",
+  vMaxItems: "En çok {max} öğe olabilir",
+  fixIssues: "Kaydetmeden önce {n} sorunu düzelt",
+  issues: "{n} sorun",
 };
 
 export type Messages = typeof en;

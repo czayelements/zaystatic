@@ -159,3 +159,76 @@ export function isEmptyValue(v) {
   if (typeof v === "object") return Object.entries(v).every(([k, x]) => k === "_type" || isEmptyValue(x));
   return false;
 }
+
+/* ── Validation ─────────────────────────────────────────────────── */
+
+const TEXTY = new Set(["string", "text", "markdown", "image", "select"]);
+
+/**
+ * Declarative rules on a field: `required`, `minLength`, `maxLength`, `pattern`
+ * (+ `patternMessage`), `min`/`max` (numbers), `minItems`/`maxItems` (lists,
+ * blocks, relations). Returns a list of issues `{ path, code, params? }`; the
+ * panel turns the codes into (translated) messages, the server rejects the save.
+ *
+ * `checkRequired: false` skips `required` (used for non-default languages: a
+ * translation may be partial, but whatever is filled in must still be valid).
+ */
+export function validateDoc(fields, doc, { checkRequired = true } = {}) {
+  const out = [];
+  const walk = (field, value, path) => {
+    const push = (code, params) => out.push({ path, code, ...(params ? { params } : {}) });
+    const empty = (v) => v == null || (typeof v === "string" && v.trim() === "");
+    switch (field.type) {
+      case "int": {
+        if (empty(value)) return void (checkRequired && field.required && push("required"));
+        if (field.min != null && value < field.min) push("min", { min: field.min });
+        if (field.max != null && value > field.max) push("max", { max: field.max });
+        return;
+      }
+      case "date":
+      case "datetime":
+      case "relation":
+        return void (empty(value) && checkRequired && field.required && push("required"));
+      case "relations":
+      case "list":
+      case "blocks": {
+        const items = Array.isArray(value) ? value : [];
+        if (checkRequired && field.required && items.length === 0) push("required");
+        if (field.minItems != null && items.length < field.minItems && (items.length > 0 || checkRequired))
+          push("minItems", { min: field.minItems });
+        if (field.maxItems != null && items.length > field.maxItems) push("maxItems", { max: field.maxItems });
+        if (field.type === "list") items.forEach((item, i) => walk(field.item, item, [...path, i]));
+        if (field.type === "blocks") {
+          items.forEach((item, i) => {
+            const b = item && field.blocks[item._type];
+            if (b) for (const [k, f] of Object.entries(b.fields)) walk(f, item[k], [...path, i, k]);
+          });
+        }
+        return;
+      }
+      case "object": {
+        const src = value && typeof value === "object" ? value : {};
+        for (const [k, f] of Object.entries(field.fields)) walk(f, src[k], [...path, k]);
+        return;
+      }
+      default: {
+        if (!TEXTY.has(field.type)) return;
+        const v = typeof value === "string" ? value : "";
+        if (empty(v)) return void (checkRequired && field.required && push("required"));
+        if (field.minLength != null && v.length < field.minLength) push("minLength", { min: field.minLength });
+        if (field.maxLength != null && v.length > field.maxLength) push("maxLength", { max: field.maxLength });
+        if (field.pattern) {
+          let ok = true;
+          try {
+            ok = new RegExp(field.pattern).test(v);
+          } catch {
+            /* an invalid pattern in the schema must not block editors */
+          }
+          if (!ok) push("pattern", field.patternMessage ? { message: field.patternMessage } : undefined);
+        }
+      }
+    }
+  };
+  for (const [k, f] of Object.entries(fields)) walk(f, doc?.[k], [k]);
+  return out;
+}

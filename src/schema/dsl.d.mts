@@ -23,9 +23,17 @@ export interface Field {
   summary?: string;
   /** object: sub-fields are shown side by side in one row (e.g. {tr,en,es,de}). */
   inline?: boolean;
+  /** Validation: the value must be filled in (lists/blocks: at least one item). */
+  required?: boolean;
+  minLength?: number;
+  maxLength?: number;
+  /** Regular expression source the value must match; add `patternMessage` to explain it. */
   pattern?: string;
+  patternMessage?: string;
   min?: number | null;
   max?: number | null;
+  minItems?: number;
+  maxItems?: number;
   options?: SelectOption[];
   collection?: string;
   item?: Field;
@@ -61,3 +69,11 @@ export function defaults(fields: Fields): any;
 export function translatableFields(fields: Fields): Fields;
 export function fieldsFromSample(sample: unknown, opts?: { longText?: (v: string) => boolean }): Fields;
 export function isEmptyValue(v: unknown): boolean;
+
+export type IssueCode = "required" | "minLength" | "maxLength" | "pattern" | "min" | "max" | "minItems" | "maxItems";
+export interface Issue {
+  path: (string | number)[];
+  code: IssueCode;
+  params?: { min?: number; max?: number; message?: string };
+}
+export function validateDoc(fields: Fields, doc: unknown, opts?: { checkRequired?: boolean }): Issue[];

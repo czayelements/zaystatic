@@ -1,4 +1,4 @@
-import { fieldsFromSample, isEmptyValue, normalize, obj, translatableFields } from "../schema/dsl.mjs";
+import { fieldsFromSample, isEmptyValue, normalize, obj, translatableFields, validateDoc } from "../schema/dsl.mjs";
 import type { Field, Fields } from "../schema/dsl.mjs";
 import { parseDoc, serializeDoc } from "./serialize";
 import { HttpError } from "./types";
@@ -49,6 +49,19 @@ export function renderTemplate(tpl: string, data: unknown): string {
     })
     .replace(/^[\s·]+|[\s·]+$/g, "")
     .replace(/\s*·\s*·\s*/g, " · ");
+}
+
+type ValidationIssue = NonNullable<HttpError["issues"]>[number];
+
+/** Validates one language document; `required` applies to the default language only. */
+function issuesOf(fields: Fields, doc: unknown, locale: string, isDefault: boolean): ValidationIssue[] {
+  return validateDoc(fields, doc, { checkRequired: isDefault }).map((i) => ({ ...i, locale }));
+}
+
+function failValidation(issues: ValidationIssue[]): never {
+  const parts = issues.slice(0, 5).map((i) => `${i.locale}:${i.path.join(".")} (${i.code})`);
+  const more = issues.length > 5 ? ` and ${issues.length - 5} more` : "";
+  throw new HttpError(422, `Validation failed: ${parts.join(", ")}${more}`, issues);
 }
 
 /**
@@ -180,6 +193,7 @@ export async function writeEntry(
   const bodyKey = bodyKeyOf(c.fields);
   const changes: Change[] = [];
   const locales = c.layout === "plain" ? [def] : config.locales;
+  const issues: ValidationIssue[] = [];
 
   for (const locale of locales) {
     const fields = locale === def ? c.fields : translatableFields(c.fields);
@@ -187,15 +201,19 @@ export async function writeEntry(
     const path = `${c.dir}/${fileName(config, c, slug, locale)}`;
 
     if (locale === def) {
-      if (!String(doc[c.identifier] ?? "").trim()) {
-        throw new HttpError(422, `"${c.fields[c.identifier]?.label ?? c.identifier}" cannot be empty.`);
-      }
+      /* The identifier names the entry, so it is always required, whatever the schema says. */
+      if (!String(doc[c.identifier] ?? "").trim()) issues.push({ locale, path: [c.identifier], code: "required" });
     } else if (isEmptyValue(doc)) {
       if (existing.includes(locale)) changes.push({ path, content: null });
       continue;
     }
+    for (const issue of issuesOf(fields, doc, locale, locale === def)) {
+      const dup = issues.some((x) => x.locale === issue.locale && x.code === issue.code && x.path.join(".") === issue.path.join("."));
+      if (!dup) issues.push(issue);
+    }
     changes.push({ path, content: serializeDoc(doc, ext(c), bodyKey) });
   }
+  if (issues.length) failValidation(issues);
 
   const title = String((docs[def] as Record<string, unknown> | undefined)?.[c.identifier] ?? slug).slice(0, 60);
   return commitChanges(store, changes, `content(${name}): ${opts.create ? "add" : "update"} ${slug} — ${title}`);
@@ -235,6 +253,8 @@ export async function readSingleton({ config, store }: Ctx, name: string) {
 export async function writeSingleton({ config, store }: Ctx, name: string, doc: unknown) {
   const s = singletonOf(config, name);
   const data = normalize(obj("", s.fields), doc) as Record<string, unknown>;
+  const issues = issuesOf(s.fields, data, config.defaultLocale, true);
+  if (issues.length) failValidation(issues);
   return commitChanges(store, [{ path: s.file, content: serializeDoc(data, "json", "body") }], `content(${name}): update`);
 }
 

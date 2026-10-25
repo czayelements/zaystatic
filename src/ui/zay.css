@@ -1060,3 +1060,31 @@
   font-weight: 700;
   letter-spacing: 0.02em;
 }
+
+/* ── Validation ────────────────────────────────── */
+.zs-req {
+  color: var(--zs-danger);
+}
+.zs-field-error {
+  margin-top: 2px;
+  color: var(--zs-danger);
+  font-size: 12.5px;
+  font-weight: 500;
+}
+.zs-field.is-invalid .zs-input,
+.zs-inline-row.is-invalid .zs-input,
+.zs-field.is-invalid .zs-seg,
+.zs-field.is-invalid .zs-image {
+  border-color: var(--zs-danger);
+}
+.zs-item.is-invalid {
+  border-color: var(--zs-danger);
+}
+.zs-dot.is-invalid {
+  background: var(--zs-danger);
+  border-color: var(--zs-danger);
+}
+.zs-state.is-invalid {
+  color: var(--zs-danger);
+  font-weight: 600;
+}

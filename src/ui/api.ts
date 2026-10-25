@@ -1,7 +1,10 @@
+export type ServerIssue = { locale: string; path: (string | number)[]; code: string; params?: Record<string, unknown> };
+
 export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
+    public issues?: ServerIssue[],
   ) {
     super(message);
   }
@@ -18,8 +21,8 @@ export function createApi(base: string) {
       headers: { "x-zay-request": "1", ...(body !== undefined ? { "Content-Type": "application/json" } : {}) },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
-    const data = (await res.json().catch(() => ({}))) as { error?: string };
-    if (!res.ok) throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`);
+    const data = (await res.json().catch(() => ({}))) as { error?: string; issues?: ServerIssue[] };
+    if (!res.ok) throw new ApiError(res.status, data.error ?? `HTTP ${res.status}`, data.issues);
     return data as T;
   }
   /** Uploads a file (multipart); returns its public URL. */

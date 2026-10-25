@@ -24,6 +24,7 @@ import type { Field, Fields } from "../schema/dsl.mjs";
 import { useZay } from "./context";
 import { Chevron, Copy, Grip, Plus, Trash, Upload, X } from "./icons";
 import { clone, cx, renderTemplate, uid } from "./util";
+import { useFieldErrors, useHasErrorsUnder } from "./validation";
 
 type Path = (string | number)[];
 type Doc = Record<string, unknown>;
@@ -145,25 +146,34 @@ type RowProps = {
 
 function FieldRow(props: RowProps) {
   const { field, compact } = props;
+  const errors = useFieldErrors(props.path);
   const complex = field.type === "list" || field.type === "blocks" || (field.type === "object" && !field.inline);
+  const problems = errors.length > 0 && !complex && (
+    <p className="zs-field-error" role="alert">
+      {errors.join(" · ")}
+    </p>
+  );
   if (compact) {
     return (
-      <div className="zs-inline-row">
+      <div className={cx("zs-inline-row", errors.length > 0 && "is-invalid")}>
         <span className="zs-badge">{field.label}</span>
         <div className="zs-grow">
           <Control {...props} />
+          {problems}
         </div>
       </div>
     );
   }
   if (complex) return <Control {...props} />;
   return (
-    <div className="zs-field">
+    <div className={cx("zs-field", errors.length > 0 && "is-invalid")}>
       <label className="zs-label">
         {field.label}
+        {field.required && <span className="zs-req" aria-hidden="true"> *</span>}
         {field.hint && <span className="zs-hint">{field.hint}</span>}
       </label>
       <Control {...props} />
+      {problems}
     </div>
   );
 }
@@ -561,6 +571,7 @@ function ListField({ field, value, reference, translating, filter, path, onChang
     setIds(keys);
   }
 
+  const listErrors = useFieldErrors(path);
   const [open, setOpen] = React.useState<Record<string, boolean>>({});
   const isOpen = (id: string) => open[id] ?? items.length <= 2;
   const q = filter?.trim().toLowerCase() ?? "";
@@ -629,6 +640,12 @@ function ListField({ field, value, reference, translating, filter, path, onChang
         )}
       </header>
 
+      {listErrors.length > 0 && (
+        <p className="zs-field-error" role="alert">
+          {listErrors.join(" · ")}
+        </p>
+      )}
+
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
         <SortableContext items={keys} strategy={verticalListSortingStrategy} disabled={locked}>
           <div className="zs-list-body">
@@ -644,6 +661,7 @@ function ListField({ field, value, reference, translating, filter, path, onChang
                   locked={locked}
                   title={isObject ? itemTitle(itemField, entry, itemField.summary ?? field.summary ?? item.summary, i, t.untitled) : undefined}
                   badge={isBlocks ? itemField.label : undefined}
+                  path={[...path, i]}
                   index={i}
                   open={isObject ? isOpen(id) : true}
                   collapsible={isObject}
@@ -696,6 +714,7 @@ function SortableItem({
   locked,
   title,
   badge,
+  path,
   index,
   open,
   collapsible,
@@ -708,6 +727,7 @@ function SortableItem({
   locked: boolean;
   title?: string;
   badge?: string;
+  path: Path;
   index: number;
   open: boolean;
   collapsible: boolean;
@@ -718,9 +738,10 @@ function SortableItem({
 }) {
   const { t } = useZay();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: locked });
+  const invalid = useHasErrorsUnder(path);
   const style = { transform: CSS.Translate.toString(transform), transition };
   return (
-    <div ref={setNodeRef} style={style} className={cx("zs-item", isDragging && "is-dragging", collapsible && !open && "is-closed")}>
+    <div ref={setNodeRef} style={style} className={cx("zs-item", isDragging && "is-dragging", collapsible && !open && "is-closed", invalid && "is-invalid")}>
       <div className="zs-item-bar">
         {!locked && (
           <button type="button" className="zs-handle" aria-label="Drag" {...attributes} {...listeners}>

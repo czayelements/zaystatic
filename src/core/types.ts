@@ -132,6 +132,8 @@ export class HttpError extends Error {
   constructor(
     public status: number,
     message: string,
+    /** Validation issues (status 422), keyed by language so the panel can mark the right tab. */
+    public issues?: { locale: string; path: (string | number)[]; code: string; params?: Record<string, unknown> }[],
   ) {
     super(message);
   }
