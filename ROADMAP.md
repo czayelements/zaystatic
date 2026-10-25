@@ -68,8 +68,8 @@ pnpm build       # tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prep
    from the request; media keys must match `SAFE_KEY`; uploads are checked by magic bytes; production without `ZAY_*`
    env stays closed (never falls back to local files); GitHub writes never force-push.
 6. **Server code stays framework-agnostic.** Do not import Next/React from `src/core`, `src/next`, `src/node` (except types).
-7. **English only** in code, comments, errors, docs. UI strings go through `ui/locales/*.ts` (add a key to `en.ts` and
-   `tr.ts`; the i18n test enforces parity).
+7. **English only** in code, comments, errors, docs. UI strings go through `ui/locales/*.ts` (add a key to `en.ts`;
+   every bundled language must define all keys, enforced by the i18n test).
 
 ### How the czay.dev project consumes this package
 The package lives at `~/Documents/projects/zay-static` (own git repo). The czay.dev site (`~/Documents/czaydev`,
@@ -116,7 +116,7 @@ pull-request workflow** (`workflow: "pull-request"`): draft branch + PR per entr
 editors (plug-ins). Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
 into automatic Collections / Singletons / File sets sections; kind icons on every item.
 
-**Panel language**: i18n-based, English default, `tr` bundled, `language` + `translations` in the settings.
+**Panel language**: i18n-based; English is the only bundled language; `language` + `translations` in the settings add any other language.
 
 **Runtime**: `(Request) => Response` handler; adapters for Next.js and Node/Express; recipes for Hono, SvelteKit, Astro, Workers.
 
@@ -194,7 +194,7 @@ Ordered by value. Each item says where to start and what "done" means.
 
 ## Panel languages
 
-The panel UI is translated through dictionaries in `src/ui/locales/` (`en` is the source and the fallback for any missing key; `tr` is bundled). A project picks the language in its settings:
+The panel UI is translated through dictionaries in `src/ui/locales/` (`en` is the only bundled language, the source and the fallback for any missing key). A project picks the language in its settings:
 
 ```ts
 defineConfig({
@@ -206,4 +206,4 @@ defineConfig({
 ```
 
 Contributing a language to the package: copy `locales/en.ts` to `locales/<code>.ts`, translate the values (the type checker flags missing keys), register it in `i18n.ts`. A test keeps every bundled language in sync with English.
-Planned: de, es, fr, pt-BR, ja, zh-CN, ar (needs right-to-left styles).
+Planned bundled languages: de, es, fr, pt-BR, ja, zh-CN, ar (needs right-to-left styles). Today a project adds its own through `translations`.

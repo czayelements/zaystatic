@@ -5,6 +5,6 @@ Start with **ROADMAP.md -> Handoff** (layout, invariants, what is verified and w
 
 - `pnpm test && pnpm typecheck && pnpm build` must pass before every commit; add tests for anything in `src/core` or `src/schema`.
 - Keep the server framework-agnostic and the on-disk format stable (see Invariants).
-- English only in code, comments, errors and docs; UI strings go in `src/ui/locales/en.ts` **and** `tr.ts`.
+- English only in code, comments, errors and docs; UI strings go in `src/ui/locales/en.ts` (and every other bundled language file).
 - The czay.dev site consumes this package through `file:` (see ROADMAP.md); run `pnpm zay:sync` there after changes.
 - Do not claim something works against real GitHub/S3 unless you ran it; the "Verified vs. not verified" list is part of the contract.

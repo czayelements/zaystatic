@@ -260,13 +260,14 @@ Rules are checked by the same function (`validateDoc`) on the server and in the 
 
 ## Panel language
 
-The panel UI is English by default and i18n-based. Choose a bundled language in the settings,
-and add your own strings (or a whole language) without waiting for a release:
+The panel UI is **English** (the only bundled language) and i18n-based, so more languages can be added later.
+A project can add a language itself, or reword any string, through `translations` in its settings,
+without waiting for a release:
 
 ```ts
 defineConfig({
-  language: "tr",                                   // bundled: "en", "tr"
-  translations: { de: { save: "Speichern" } },      // used when language is "de"; missing keys fall back to English
+  language: "de",                                   // default "en"
+  translations: { de: { save: "Speichern", cancel: "Abbrechen" /* … */ } }, // keys: src/ui/locales/en.ts; missing keys fall back to English
   // …
 });
 ```

@@ -7,7 +7,7 @@
 - Stores: local files and GitHub (one commit per save, fast-forward only).
 - GitHub sign-in with sealed sessions and CSRF-guarded writes.
 - Validation rules (required, length, pattern, min/max, item counts), enforced server-side and in the panel.
-- Panel UI is i18n-based: English default, `language` + `translations` in the settings, `tr` bundled.
+- Panel UI is i18n-based: English is the only bundled language; `language` + `translations` in the settings add others.
 - Media library (list/delete on adapters, Media tab, picker in image fields).
 - Optional pull-request workflow with a Review tab.
 - Sidebar areas (Content / Media / Review) and automatic Collections / Singletons / File sets sections.

@@ -1,15 +1,16 @@
 import { en } from "./locales/en";
 import type { Messages } from "./locales/en";
-import { tr } from "./locales/tr";
 
 export type { Messages };
 
 /**
- * Panel UI languages. To add one: create `locales/<code>.ts` (a full `Messages`
- * object, typed so the compiler flags missing keys), register it here, and add a
- * line to the changelog. Any key a language does not define falls back to English.
+ * Panel UI languages. The package ships English only. To add a language: create
+ * `locales/<code>.ts` (a full `Messages` object, typed so the compiler flags missing
+ * keys), register it here, and add a line to the changelog. A language a key is
+ * missing from falls back to English. Projects can also bring their own strings
+ * without touching the package, through `translations` in their settings.
  */
-export const dictionaries: Record<string, Messages> = { en, tr };
+export const dictionaries: Record<string, Messages> = { en };
 
 /**
  * English, overlaid with the chosen language, overlaid with the host's own
