@@ -6,7 +6,7 @@ import { createApi } from "./api";
 import { Link, ZayProvider, useZay } from "./context";
 import { GitHub, Menu, Out, Search, X } from "./icons";
 import { CollectionView, Dashboard, EntryView, FileSetView, SingletonView, navSections } from "./views";
-import { dictionaries } from "./i18n";
+import { resolveMessages } from "./i18n";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
 
@@ -65,7 +65,7 @@ export function ZayApp({ apiPath, editors = NO_EDITORS }: ZayAppProps) {
 }
 
 function SignIn({ session, apiPath }: { session: SessionInfo; apiPath: string }) {
-  const t = dictionaries[session.language] ?? dictionaries.en!;
+  const t = resolveMessages(session.language, session.messages);
   const error = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("error") : null;
   return (
     <div className="zs-root zs-center">

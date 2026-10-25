@@ -124,6 +124,7 @@ export function createHandler(input: ZayConfig) {
         branch: config.repo?.branch ?? "main",
         name: config.name ?? "zay-static",
         language: config.language ?? "en",
+        messages: config.translations?.[config.language ?? "en"],
         apiPath: api,
         basePath: config.basePath,
         media: config.media

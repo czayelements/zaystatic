@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import type { Api } from "./api";
-import { dictionaries } from "./i18n";
+import { resolveMessages } from "./i18n";
 import type { Messages } from "./i18n";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
@@ -55,7 +55,7 @@ export function ZayProvider({
   children: React.ReactNode;
 }) {
   const basePath = session.basePath.replace(/\/$/, "");
-  const t = dictionaries[session.language] ?? dictionaries.en!;
+  const t = React.useMemo(() => resolveMessages(session.language, session.messages), [session.language, session.messages]);
   const [path, setPath] = React.useState(() => strip(window.location.pathname, basePath));
   const guard = React.useRef<(() => boolean) | null>(null);
   const [toasts, setToasts] = React.useState<Toast[]>([]);

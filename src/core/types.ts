@@ -80,8 +80,14 @@ export type ZayConfig = ZaySchema & {
   schema?: ZaySchema;
   /** Image uploads (optional): s3Media(...), repoMedia() or your own MediaAdapter. */
   media?: MediaConfig;
-  /** Language of the panel UI. */
-  language?: "en" | "tr";
+  /** Language of the panel UI (default "en"; bundled: "en", "tr"). */
+  language?: string;
+  /**
+   * Your own panel strings, keyed by language code. Add a language the package
+   * does not ship yet, or reword any string; missing keys fall back to English.
+   * Keys are those of `src/ui/locales/en.ts`.
+   */
+  translations?: Record<string, Record<string, string>>;
   /** Local file root (default: process.cwd()). */
   root?: string;
 };

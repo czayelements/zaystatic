@@ -17,7 +17,10 @@ export type SessionInfo = {
   repo: string | null;
   branch: string;
   name: string;
-  language: "en" | "tr";
+  /** Panel UI language code (see `locales/`). */
+  language: string;
+  /** The host's own string overrides / extra language, from `translations` in the config. */
+  messages?: Record<string, string>;
   apiPath: string;
   basePath: string;
   /** Limits when uploads are enabled; null when disabled (paste-a-link only). */

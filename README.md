@@ -223,6 +223,21 @@ which stay position-aligned.
 `normalize(field, raw)` (from `zay-static/schema`) fills defaults the same way the panel does, so
 your build can read files that only contain the fields someone filled in.
 
+## Panel language
+
+The panel UI is English by default and i18n-based. Choose a bundled language in the settings,
+and add your own strings (or a whole language) without waiting for a release:
+
+```ts
+defineConfig({
+  language: "tr",                                   // bundled: "en", "tr"
+  translations: { de: { save: "Speichern" } },      // used when language is "de"; missing keys fall back to English
+  // …
+});
+```
+
+See [ROADMAP.md](ROADMAP.md) for how to contribute a language.
+
 ## Localisation
 
 `locales` and `defaultLocale` in the settings; `layout: "locales"` on a collection. Each
@@ -330,6 +345,8 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 | `zay-static/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
 
 ## Limitations
+
+See [ROADMAP.md](ROADMAP.md) for what is planned.
 
 - The panel UI is React-only (the server is not).
 - Uploads go through your server (platform body limits apply); there is no media library to browse earlier uploads.
