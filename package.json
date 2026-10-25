@@ -38,7 +38,11 @@
       "import": "./dist/schema.mjs"
     },
     "./styles.css": "./dist/styles.css",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    }
   },
   "scripts": {
     "build": "node scripts/clean.mjs && tsup && node scripts/copy-assets.mjs",
