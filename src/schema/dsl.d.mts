@@ -28,7 +28,7 @@ export interface Field {
   minLength?: number;
   maxLength?: number;
   /** Regular expression source the value must match; add `patternMessage` to explain it. */
-  pattern?: string;
+  pattern?: string | [source: string, message: string];
   patternMessage?: string;
   min?: number | null;
   max?: number | null;

@@ -218,13 +218,15 @@ export function validateDoc(fields, doc, { checkRequired = true } = {}) {
         if (field.minLength != null && v.length < field.minLength) push("minLength", { min: field.minLength });
         if (field.maxLength != null && v.length > field.maxLength) push("maxLength", { max: field.maxLength });
         if (field.pattern) {
+          /* `pattern: "^\\d{4}$"` or `pattern: ["^\\d{4}$", "Four-digit year"]` (regex + message) */
+          const [source, message] = Array.isArray(field.pattern) ? field.pattern : [field.pattern, field.patternMessage];
           let ok = true;
           try {
-            ok = new RegExp(field.pattern).test(v);
+            ok = new RegExp(source).test(v);
           } catch {
             /* an invalid pattern in the schema must not block editors */
           }
-          if (!ok) push("pattern", field.patternMessage ? { message: field.patternMessage } : undefined);
+          if (!ok) push("pattern", message ? { message } : undefined);
         }
       }
     }

@@ -36,6 +36,12 @@ test("numbers, lists, blocks, relations and nesting", () => {
   assert.deepEqual(codes(validateDoc(fields, { n: 9, tags: ["a", "", "c"], people: ["x"], sections: [], meta: { a: "/i.png" } })), ["n:max", "tags.1:required", "tags:maxItems"]);
 });
 
+test("pattern accepts [regex, message]", () => {
+  const f = { y: str("Year", { pattern: ["^\\d{4}$", "Four-digit year"] }) };
+  assert.deepEqual(validateDoc(f, { y: "2026" }), []);
+  assert.equal(validateDoc(f, { y: "26" })[0]!.params?.message, "Four-digit year");
+});
+
 test("an invalid regular expression in the schema never blocks editing", () => {
   assert.deepEqual(validateDoc({ a: str("A", { pattern: "([" }) }, { a: "x" }), []);
 });
