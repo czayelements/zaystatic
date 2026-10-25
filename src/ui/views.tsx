@@ -9,14 +9,15 @@ import { Form, ListOpProvider, applyListOp } from "./form";
 import type { ListOp } from "./form";
 import { Plus, Search, Trash } from "./icons";
 import { MediaLibrary } from "./media";
-import { ErrorBox, Loading, LocaleTabs, PageHeader, SaveBar, useAsync, useDirty, useSaveShortcut } from "./parts";
-import type { Docs, EntrySummary } from "./types";
+import { DraftControls, ErrorBox, Loading, LocaleTabs, PageHeader, SaveBar, useAsync, useDirty, useSaveShortcut } from "./parts";
+import type { Docs, DraftInfo, DraftRef, EntrySummary } from "./types";
 import { clone, cx, slugify } from "./util";
+import type { Messages } from "./i18n";
 import { ValidationProvider, toErrors, validateDocs } from "./validation";
 import type { ServerIssue } from "./api";
 import { ApiError } from "./api";
 
-type SaveResult = { ok: boolean; unchanged?: boolean; id?: string; url?: string; files?: number };
+type SaveResult = { ok: boolean; unchanged?: boolean; id?: string; url?: string; files?: number; draft?: DraftRef };
 
 export function MediaView() {
   const { t, session } = useZay();
@@ -33,7 +34,7 @@ export function MediaView() {
 
 export function Dashboard() {
   const { schema, session, t } = useZay();
-  const sections = navSections(schema);
+  const sections = navSections(schema, t);
   return (
     <>
       <PageHeader title={session.name} sub={session.mode === "local" ? t.localMode : session.repo ? `${session.repo} · ${session.branch}` : undefined} />
@@ -58,16 +59,25 @@ export function Dashboard() {
 export type NavItem = { to: string; label: string; kind: "c" | "s" | "f"; key: string };
 export type NavSection = { id: string; label: string; items: NavItem[] };
 
-export function navSections(schema: ReturnType<typeof useZay>["schema"]): NavSection[] {
+const KIND_ORDER = { c: 0, s: 1, f: 2 } as const;
+
+/**
+ * Sidebar model. Items with a `group` appear under the groups the project defined
+ * (collections first, then singletons, then file sets). Items without one are
+ * sorted into automatic sections by kind: Collections, Singletons, File sets.
+ */
+export function navSections(schema: ReturnType<typeof useZay>["schema"], t: Pick<Messages, "collections" | "singletons" | "fileSets">): NavSection[] {
   const items: (NavItem & { group?: string })[] = [
     ...Object.entries(schema.collections).map(([key, c]) => ({ to: `/c/${key}`, label: c.label, kind: "c" as const, key, group: c.group })),
     ...Object.entries(schema.singletons).map(([key, s]) => ({ to: `/s/${key}`, label: s.label, kind: "s" as const, key, group: s.group })),
     ...Object.entries(schema.fileSets).map(([key, f]) => ({ to: `/f/${key}`, label: f.label, kind: "f" as const, key, group: f.group })),
   ];
   const known = schema.groups.map((g) => g.id);
-  const out: NavSection[] = schema.groups.map((g) => ({ id: g.id, label: g.label, items: items.filter((i) => i.group === g.id) }));
+  const byKind = (list: typeof items) => [...list].sort((a, b) => KIND_ORDER[a.kind] - KIND_ORDER[b.kind]);
+  const out: NavSection[] = schema.groups.map((g) => ({ id: g.id, label: g.label, items: byKind(items.filter((i) => i.group === g.id)) }));
   const rest = items.filter((i) => !i.group || !known.includes(i.group));
-  if (rest.length) out.push({ id: "_", label: "·", items: rest });
+  const auto: [NavItem["kind"], string][] = [["c", t.collections], ["s", t.singletons], ["f", t.fileSets]];
+  for (const [kind, label] of auto) out.push({ id: `_${kind}`, label, items: rest.filter((i) => i.kind === kind) });
   return out.filter((s) => s.items.length);
 }
 
@@ -77,10 +87,14 @@ export function CollectionView({ name }: { name: string }) {
   const { api, schema, t } = useZay();
   const col = schema.collections[name];
   const [q, setQ] = React.useState("");
-  const { data, error, loading } = useAsync(() => api.get<{ entries: EntrySummary[] }>(`/collections/${name}`), [name]);
+  const { data, error, loading } = useAsync(() => api.get<{ entries: EntrySummary[]; drafts?: string[] }>(`/collections/${name}`), [name]);
   if (!col) return <ErrorBox message={`?${name}`} />;
 
-  const rows = (data?.entries ?? []).filter((e) => !q.trim() || `${e.title} ${e.slug} ${e.summary}`.toLowerCase().includes(q.trim().toLowerCase()));
+  const drafts = new Set(data?.drafts ?? []);
+  /* Entries that exist only as a draft are not in the repository's list yet. */
+  const known = new Set((data?.entries ?? []).map((e) => e.slug));
+  const draftOnly: EntrySummary[] = [...drafts].filter((s) => !known.has(s)).map((s) => ({ slug: s, title: s, summary: t.draftOnly, locales: [] }));
+  const rows = [...draftOnly, ...(data?.entries ?? [])].filter((e) => !q.trim() || `${e.title} ${e.slug} ${e.summary}`.toLowerCase().includes(q.trim().toLowerCase()));
   const localized = col.layout === "locales";
 
   return (
@@ -111,8 +125,9 @@ export function CollectionView({ name }: { name: string }) {
                   <b>{e.title}</b>
                   {e.summary && <small>{e.summary}</small>}
                 </span>
+                {drafts.has(e.slug) && <span className="zs-pill zs-pill-draft">{t.draft}</span>}
                 {e.published === false && <span className="zs-pill">{t.draft}</span>}
-                {localized && (
+                {localized && e.locales.length > 0 && (
                   <span className="zs-locales">
                     {schema.locales.map((l) => (
                       <span key={l} className={cx(e.locales.includes(l) && "is-on")} title={schema.localeNames[l] ?? l}>
@@ -159,7 +174,7 @@ function listFieldAt(fields: Fields, path: (string | number)[], doc: unknown): F
 }
 
 export function EntryView({ name, slug }: { name: string; slug: string }) {
-  const { api, schema, t, navigate, toast, editors, setGuard } = useZay();
+  const { api, schema, t, navigate, toast, editors, setGuard, bumpDrafts, session } = useZay();
   const col = schema.collections[name];
   const isNew = slug === "_new";
   const def = schema.defaultLocale;
@@ -177,6 +192,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const [slugTouched, setSlugTouched] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [showErrors, setShowErrors] = React.useState(false);
+  const [draft, setDraft] = React.useState<DraftRef | null>(null);
 
   const localeFields = React.useCallback(
     (l: string): Fields => (!col ? {} : l === def ? col.fields : translatableFields(col.fields)),
@@ -193,9 +209,10 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
     if (!col || isNew) return;
     let live = true;
     api
-      .get<{ docs: Docs }>(`/collections/${name}/${slug}`)
+      .get<{ docs: Docs; draft?: DraftRef }>(`/collections/${name}/${slug}`)
       .then((r) => {
         if (!live) return;
+        setDraft(r.draft ?? null);
         setDocs(r.docs);
         setSaved(JSON.stringify(r.docs));
       })
@@ -227,7 +244,11 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
         ? await api.post<SaveResult>(`/collections/${name}/${effectiveSlug}`, { docs })
         : await api.put<SaveResult>(`/collections/${name}/${slug}`, { docs });
       setSaved(JSON.stringify(docs));
-      toast("ok", res.unchanged ? t.unchangedNote : `${t.committed} · ${t.deployNote}`);
+      if (res.draft) {
+        setDraft(res.draft);
+        bumpDrafts();
+      }
+      toast("ok", res.unchanged ? t.unchangedNote : res.draft ? `${t.draftSaved} · #${res.draft.number}` : `${t.committed} · ${t.deployNote}`);
       if (isNew) {
         setGuard(null);
         navigate(`/c/${name}/${effectiveSlug}`, { replace: true });
@@ -297,6 +318,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
                 </button>
               </div>
             )}
+            <DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />
             {!isNew && (
               <button type="button" className="zs-btn zs-btn-ghost zs-danger" onClick={remove}>
                 <Trash /> {t.delete}
@@ -369,7 +391,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
       </ListOpProvider>
       </ValidationProvider>
 
-      <SaveBar dirty={dirty} saving={saving} onSave={save} label={isNew ? t.create : t.save} issues={showErrors ? issueCount : 0} />
+      <SaveBar dirty={dirty} saving={saving} onSave={save} label={isNew ? t.create : session.workflow === "pull-request" ? t.saveDraft : t.save} issues={showErrors ? issueCount : 0} />
     </>
   );
 }
@@ -377,13 +399,14 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
 /* ── Singleton ──────────────────────────────────────────────────── */
 
 export function SingletonView({ name }: { name: string }) {
-  const { api, schema, t, toast } = useZay();
+  const { api, schema, t, toast, bumpDrafts, session } = useZay();
   const def = schema.singletons[name];
   const [doc, setDoc] = React.useState<Record<string, unknown> | null>(null);
   const [saved, setSaved] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const [saving, setSaving] = React.useState(false);
   const [showErrors, setShowErrors] = React.useState(false);
+  const [draft, setDraft] = React.useState<DraftRef | null>(null);
   const def_ = schema.defaultLocale;
   const issues = React.useMemo(
     () => (def && doc ? validateDocs({ [def_]: doc }, () => def.fields, [def_], def_)[def_] ?? [] : []),
@@ -393,9 +416,10 @@ export function SingletonView({ name }: { name: string }) {
   React.useEffect(() => {
     let live = true;
     api
-      .get<{ doc: Record<string, unknown> }>(`/singletons/${name}`)
+      .get<{ doc: Record<string, unknown>; draft?: DraftRef }>(`/singletons/${name}`)
       .then((r) => {
         if (!live) return;
+        setDraft(r.draft ?? null);
         setDoc(r.doc);
         setSaved(JSON.stringify(r.doc));
       })
@@ -417,7 +441,11 @@ export function SingletonView({ name }: { name: string }) {
     try {
       const res = await api.put<SaveResult>(`/singletons/${name}`, { doc });
       setSaved(JSON.stringify(doc));
-      toast("ok", res.unchanged ? t.unchangedNote : `${t.committed} · ${t.deployNote}`);
+      if (res.draft) {
+        setDraft(res.draft);
+        bumpDrafts();
+      }
+      toast("ok", res.unchanged ? t.unchangedNote : res.draft ? `${t.draftSaved} · #${res.draft.number}` : `${t.committed} · ${t.deployNote}`);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -431,11 +459,11 @@ export function SingletonView({ name }: { name: string }) {
   if (!doc) return <Loading />;
   return (
     <>
-      <PageHeader title={def.label} />
+      <PageHeader title={def.label} actions={<DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />} />
       <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues) }}>
         <Form fields={def.fields} value={doc} onChange={setDoc} />
       </ValidationProvider>
-      <SaveBar dirty={dirty} saving={saving} onSave={save} issues={showErrors ? issues.length : 0} />
+      <SaveBar dirty={dirty} saving={saving} onSave={save} label={session.workflow === "pull-request" ? t.saveDraft : t.save} issues={showErrors ? issues.length : 0} />
     </>
   );
 }
@@ -479,7 +507,8 @@ export function FileSetView({ name, file }: { name: string; file?: string }) {
 }
 
 function FileEditor({ name, file, label }: { name: string; file: string; label: string }) {
-  const { api, schema, t, toast } = useZay();
+  const { api, schema, t, toast, bumpDrafts, session } = useZay();
+  const [draft, setDraft] = React.useState<DraftRef | null>(null);
   const def = schema.defaultLocale;
   const [data, setData] = React.useState<{ file: { label: string }; fields: Fields; docs: Docs } | null>(null);
   const [docs, setDocs] = React.useState<Docs | null>(null);
@@ -492,9 +521,10 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
   React.useEffect(() => {
     let live = true;
     api
-      .get<{ file: { label: string }; fields: Fields; docs: Docs }>(`/filesets/${name}/${file}`)
+      .get<{ file: { label: string }; fields: Fields; docs: Docs; draft?: DraftRef }>(`/filesets/${name}/${file}`)
       .then((r) => {
         if (!live) return;
+        setDraft(r.draft ?? null);
         setData(r);
         setDocs(r.docs);
         setSaved(JSON.stringify(r.docs));
@@ -512,7 +542,11 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
     try {
       const res = await api.put<SaveResult>(`/filesets/${name}/${file}`, { docs });
       setSaved(JSON.stringify(docs));
-      toast("ok", res.unchanged ? t.unchangedNote : `${t.committed} · ${t.deployNote}`);
+      if (res.draft) {
+        setDraft(res.draft);
+        bumpDrafts();
+      }
+      toast("ok", res.unchanged ? t.unchangedNote : res.draft ? `${t.draftSaved} · #${res.draft.number}` : `${t.committed} · ${t.deployNote}`);
     } catch (e) {
       toast("error", (e as Error).message);
     } finally {
@@ -541,7 +575,7 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
 
   return (
     <>
-      <PageHeader crumbs={<Link to={`/f/${name}`}>{label}</Link>} title={data.file.label} sub={<code>{file}</code>} />
+      <PageHeader crumbs={<Link to={`/f/${name}`}>{label}</Link>} title={data.file.label} sub={<code>{file}</code>} actions={<DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />} />
       <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={def} />
       <div className="zs-toolbar">
         <div className="zs-search">
@@ -559,8 +593,86 @@ function FileEditor({ name, file, label }: { name: string; file: string; label: 
           onChange={(v) => setDocs({ ...docs, [active]: v })}
         />
       </ListOpProvider>
-      <SaveBar dirty={dirty} saving={saving} onSave={save} />
+      <SaveBar dirty={dirty} saving={saving} onSave={save} label={session.workflow === "pull-request" ? t.saveDraft : t.save} />
     </>
   );
 }
 
+
+/* ── Review (pull-request workflow) ─────────────────────────────── */
+
+const ago = (iso: string) => {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return "now";
+  if (mins < 60) return `${mins} min`;
+  if (mins < 60 * 48) return `${Math.round(mins / 60)} h`;
+  return `${Math.round(mins / 1440)} d`;
+};
+
+export function ReviewView() {
+  const { api, schema, t, toast, bumpDrafts, viewTick } = useZay();
+  const list = useAsync(() => api.drafts(), [api, viewTick]);
+  const [busy, setBusy] = React.useState<number | null>(null);
+
+  const label = (d: DraftInfo) => {
+    const x = d.target;
+    if (x.kind === "c") return { group: schema.collections[x.name]?.label ?? x.name, name: x.slug ?? "", to: `/c/${x.name}/${x.slug}` };
+    if (x.kind === "s") return { group: schema.singletons[x.name]?.label ?? x.name, name: "", to: `/s/${x.name}` };
+    return { group: schema.fileSets[x.name]?.label ?? x.name, name: x.file ?? "", to: `/f/${x.name}/${x.file}` };
+  };
+
+  const run = async (d: DraftInfo, kind: "publish" | "discard") => {
+    if (!window.confirm(kind === "publish" ? t.confirmPublish : t.confirmDiscard)) return;
+    setBusy(d.number);
+    try {
+      if (kind === "publish") await api.publishDraft(d.number);
+      else await api.discardDraft(d.number);
+      toast("ok", kind === "publish" ? t.published : t.deleted);
+      bumpDrafts();
+      list.reload();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <>
+      <PageHeader title={t.review} />
+      {list.loading && !list.data && <Loading />}
+      {list.error && <ErrorBox message={list.error} />}
+      {list.data && !list.data.drafts.length && <p className="zs-muted zs-pad">{t.noDrafts}</p>}
+      <ul className="zs-rows">
+        {(list.data?.drafts ?? []).map((d) => {
+          const l = label(d);
+          return (
+            <li key={d.number} className="zs-row zs-review-row">
+              <Link to={l.to} className="zs-row-main">
+                <b>{l.name || l.group}</b>
+                <small>
+                  {l.name ? `${l.group} · ` : ""}#{d.number} · {ago(d.updatedAt)}
+                  {d.author ? ` · ${d.author.login}` : ""}
+                </small>
+              </Link>
+              <a className="zs-btn zs-btn-sm zs-btn-ghost" href={d.url} target="_blank" rel="noreferrer">
+                {t.openPr}
+              </a>
+              {d.previewUrl && (
+                <a className="zs-btn zs-btn-sm zs-btn-ghost" href={d.previewUrl} target="_blank" rel="noreferrer">
+                  {t.preview}
+                </a>
+              )}
+              <button type="button" className="zs-btn zs-btn-sm zs-btn-primary" disabled={busy === d.number} onClick={() => void run(d, "publish")}>
+                {t.publish}
+              </button>
+              <button type="button" className="zs-btn zs-btn-sm zs-btn-ghost zs-danger" disabled={busy === d.number} onClick={() => void run(d, "discard")}>
+                {t.discard}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
+  );
+}

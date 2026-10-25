@@ -30,6 +30,8 @@ import {
 import { DEFAULT_ACCEPT, DEFAULT_MAX_BYTES, SAFE_KEY, extFor, mediaKey, sniffImage, svgIsSafe } from "./media";
 import { fsStore } from "./store-fs";
 import { githubStore } from "./store-github";
+import { PullRequests, branchFor, draftStore, workflowOf } from "./workflow";
+import type { Draft, DraftStore, Target } from "./workflow";
 import { HttpError, resolveConfig } from "./types";
 import type { Store, ZayConfig } from "./types";
 
@@ -127,6 +129,7 @@ export function createHandler(input: ZayConfig) {
         messages: config.translations?.[config.language ?? "en"],
         apiPath: api,
         basePath: config.basePath,
+        workflow: mode === "github" ? workflowOf(config).mode : "direct",
         media: config.media
           ? {
               maxBytes: config.media.maxBytes ?? DEFAULT_MAX_BYTES,
@@ -149,11 +152,21 @@ export function createHandler(input: ZayConfig) {
       if (from && from !== url.origin && from !== origin) throw new HttpError(403, "Invalid origin");
     }
 
-    const store: Store =
-      mode === "local"
-        ? fsStore(config.root ?? process.cwd())
-        : githubStore(session!.token, { ...config.repo!, branch: config.repo!.branch ?? "main" });
+    const repo = config.repo && { ...config.repo, branch: config.repo.branch ?? "main" };
+    const store: Store = mode === "local" ? fsStore(config.root ?? process.cwd()) : githubStore(session!.token, repo!, repo!.apiUrl);
     const ctx = { config, store };
+
+    /* Pull-request workflow (GitHub mode only). */
+    const wf = workflowOf(config);
+    const prs = mode === "github" && wf.mode === "pull-request" ? new PullRequests(session!.token, repo!, wf, repo!.apiUrl) : null;
+
+    /** The store for one editing target: its draft branch when the workflow is on, the plain store otherwise. */
+    const storeFor = (target: Target): Store | DraftStore =>
+      prs ? draftStore({ base: store, prs, token: session!.token, repo: repo!, apiUrl: repo!.apiUrl, branch: branchFor(wf.branchPrefix, target) }) : store;
+    const withDraft = async <T extends object>(s: Store | DraftStore, data: T) => {
+      const draft = "info" in s ? await s.info() : null;
+      return draft ? { ...data, draft } : data;
+    };
 
     const body = async () => {
       const text = await request.text();
@@ -164,6 +177,23 @@ export function createHandler(input: ZayConfig) {
         throw new HttpError(400, "Invalid JSON");
       }
     };
+
+    if (parts[0] === "drafts") {
+      if (!prs) throw new HttpError(404, "The pull-request workflow is not enabled");
+      const [, number, action] = parts;
+      if (!number && method === "GET") return json({ drafts: await prs.list() satisfies Draft[] });
+      const n = Number(number);
+      if (Number.isInteger(n) && n > 0) {
+        if (action === "publish" && method === "POST") {
+          await prs.publish(n);
+          return json({ ok: true });
+        }
+        if (!action && method === "DELETE") {
+          await prs.discard(n);
+          return json({ ok: true });
+        }
+      }
+    }
 
     if (parts[0] === "media" && method === "GET") {
       const adapter = config.media?.adapter;
@@ -220,30 +250,41 @@ export function createHandler(input: ZayConfig) {
 
     if (parts[0] === "collections") {
       const [, name, slug, extra] = parts;
-      if (name && !slug && method === "GET") return json({ entries: await listEntries(ctx, name) });
+      if (name && !slug && method === "GET") {
+        const drafts = prs ? (await prs.list()).filter((d) => d.target.kind === "c" && d.target.name === name).map((d) => (d.target as { slug: string }).slug) : [];
+        return json({ entries: await listEntries(ctx, name), ...(prs ? { drafts } : {}) });
+      }
       if (name && slug === "_options" && method === "GET") return json({ options: await optionsOf(ctx, name) });
       if (name && slug && !extra) {
-        if (method === "GET") return json(await readEntry(ctx, name, slug));
+        const st = storeFor({ kind: "c", name, slug });
+        const c = { config, store: st };
+        if (method === "GET") return json(await withDraft(st, await readEntry(c, name, slug)));
         if (method === "PUT" || method === "POST") {
           const b = await body();
-          const result = await writeEntry(ctx, name, slug, (b.docs ?? {}) as Record<string, unknown>, { create: method === "POST" });
+          const result = await writeEntry(c, name, slug, (b.docs ?? {}) as Record<string, unknown>, { create: method === "POST" });
           return json({ ok: true, ...result });
         }
-        if (method === "DELETE") return json({ ok: true, ...(await deleteEntry(ctx, name, slug)) });
+        if (method === "DELETE") return json({ ok: true, ...(await deleteEntry(c, name, slug)) });
       }
     }
 
     if (parts[0] === "singletons" && parts[1]) {
-      if (method === "GET") return json(await readSingleton(ctx, parts[1]));
-      if (method === "PUT") return json({ ok: true, ...(await writeSingleton(ctx, parts[1], (await body()).doc)) });
+      const st = storeFor({ kind: "s", name: parts[1] });
+      const c = { config, store: st };
+      if (method === "GET") return json(await withDraft(st, await readSingleton(c, parts[1])));
+      if (method === "PUT") return json({ ok: true, ...(await writeSingleton(c, parts[1], (await body()).doc)) });
     }
 
     if (parts[0] === "filesets" && parts[1]) {
       const [, name, file] = parts;
       if (!file && method === "GET") return json({ files: await listFileSetFiles(ctx, name!) });
-      if (file && method === "GET") return json(await readFileSet(ctx, name!, file));
-      if (file && method === "PUT") {
-        return json({ ok: true, ...(await writeFileSet(ctx, name!, file, ((await body()).docs ?? {}) as Record<string, unknown>)) });
+      if (file) {
+        const st = storeFor({ kind: "f", name: name!, file });
+        const c = { config, store: st };
+        if (method === "GET") return json(await withDraft(st, await readFileSet(c, name!, file)));
+        if (method === "PUT") {
+          return json({ ok: true, ...(await writeFileSet(c, name!, file, ((await body()).docs ?? {}) as Record<string, unknown>)) });
+        }
       }
     }
 

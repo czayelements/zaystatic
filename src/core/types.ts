@@ -74,8 +74,15 @@ export type ZayConfig = ZaySchema & {
   basePath: string;
   /** Path of the API (the Next.js route handler lives here). */
   apiPath: string;
+  /**
+   * How saves are published (GitHub mode only; local mode always writes directly).
+   *  - "direct" (default): a save is a commit to the configured branch.
+   *  - "pull-request": a save goes to a draft branch and opens a pull request; a
+   *    Review page lists drafts to publish (merge) or discard.
+   */
+  workflow?: "direct" | WorkflowConfig;
   /** In production, content is committed to this GitHub repository. */
-  repo?: { owner: string; name: string; branch?: string };
+  repo?: { owner: string; name: string; branch?: string; /** GitHub Enterprise: API root, e.g. https://ghe.example.com/api/v3 */ apiUrl?: string };
   /** Content model (zay.schema.ts). */
   schema?: ZaySchema;
   /** Image uploads (optional): s3Media(...), repoMedia() or your own MediaAdapter. */
@@ -90,6 +97,16 @@ export type ZayConfig = ZaySchema & {
   translations?: Record<string, Record<string, string>>;
   /** Local file root (default: process.cwd()). */
   root?: string;
+};
+
+export type WorkflowConfig = {
+  mode: "direct" | "pull-request";
+  /** Draft branches are `<prefix>c/<collection>/<slug>`, `<prefix>s/<name>`, `<prefix>f/<set>/<file>`. Default "zay/". */
+  branchPrefix?: string;
+  /** Link to a rendered preview of a draft; `{pr}` and `{branch}` are replaced. e.g. "https://deploy-preview-{pr}--mysite.netlify.app" */
+  previewUrl?: string;
+  /** How publishing merges the pull request. Default "squash". */
+  mergeMethod?: "squash" | "merge" | "rebase";
 };
 
 /** `schema` merged with the top-level definitions; the engine reads only this. */
@@ -118,6 +135,9 @@ export const defineCollection = (c: Collection): Collection => c;
 export const defineSingleton = (s: Singleton): Singleton => s;
 export const defineFileSet = (f: FileSet): FileSet => f;
 
+/** A pull request that holds an unpublished draft. */
+export type DraftRef = { number: number; url: string; branch: string; previewUrl?: string };
+
 export type Change = {
   path: string;
   /** null → delete the file. */
@@ -133,7 +153,7 @@ export interface Store {
   listTree(dir: string): Promise<string[]>;
   read(path: string): Promise<string | null>;
   /** All changes in one commit (GitHub) / written in order (local). */
-  commit(changes: Change[], message: string): Promise<{ id?: string; url?: string }>;
+  commit(changes: Change[], message: string): Promise<{ id?: string; url?: string; draft?: DraftRef }>;
 }
 
 export class HttpError extends Error {

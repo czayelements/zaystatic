@@ -24,6 +24,12 @@ type Ctx = {
   setGuard: (fn: (() => boolean) | null) => void;
   toast: (kind: Toast["kind"], text: string) => void;
   refreshSchema: () => void;
+  /** Increments when the current view must re-read its data (after publish / discard). */
+  viewTick: number;
+  reloadView: () => void;
+  /** Draft count changed (saved/published/discarded): refresh the sidebar badge. */
+  draftTick: number;
+  bumpDrafts: () => void;
 };
 
 const ZayContext = React.createContext<Ctx | null>(null);
@@ -59,6 +65,10 @@ export function ZayProvider({
   const [path, setPath] = React.useState(() => strip(window.location.pathname, basePath));
   const guard = React.useRef<(() => boolean) | null>(null);
   const [toasts, setToasts] = React.useState<Toast[]>([]);
+  const [viewTick, setViewTick] = React.useState(0);
+  const reloadView = React.useCallback(() => setViewTick((n) => n + 1), []);
+  const [draftTick, setDraftTick] = React.useState(0);
+  const bumpDrafts = React.useCallback(() => setDraftTick((n) => n + 1), []);
 
   React.useEffect(() => {
     const onPop = () => setPath(strip(window.location.pathname, basePath));
@@ -100,8 +110,8 @@ export function ZayProvider({
   }, []);
 
   const value = React.useMemo<Ctx>(
-    () => ({ api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema }),
-    [api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema],
+    () => ({ api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, viewTick, reloadView, draftTick, bumpDrafts }),
+    [api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, viewTick, reloadView, draftTick, bumpDrafts],
   );
 
   return (

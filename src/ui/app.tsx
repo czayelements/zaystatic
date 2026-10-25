@@ -4,8 +4,9 @@ import * as React from "react";
 
 import { createApi } from "./api";
 import { Link, ZayProvider, useZay } from "./context";
-import { GitHub, Menu, Out, Search, X } from "./icons";
-import { CollectionView, Dashboard, EntryView, FileSetView, MediaView, SingletonView, navSections } from "./views";
+import { FileText, GitHub, Globe, Menu, Out, Search, Stack, X } from "./icons";
+import { CollectionView, Dashboard, EntryView, FileSetView, MediaView, ReviewView, SingletonView, navSections } from "./views";
+import type { NavItem } from "./views";
 import { resolveMessages } from "./i18n";
 import type { EditorMap, Schema, SessionInfo } from "./types";
 import { cx } from "./util";
@@ -93,17 +94,24 @@ function parse(path: string): { view: string; parts: string[] } {
 }
 
 function Shell() {
-  const { path, schema, session, t, api } = useZay();
+  const { path, schema, session, t, api, navigate, viewTick, draftTick } = useZay();
   /* The menu closes when the page changes: we remember the path it was opened on. */
   const [menuPath, setMenuPath] = React.useState<string | null>(null);
   const menu = menuPath === path;
   const setMenu = (open: boolean) => setMenuPath(open ? path : null);
   const [nav, setNav] = React.useState("");
-  const sections = React.useMemo(() => {
-    const list = navSections(schema);
-    if (session.media?.library) list.push({ id: "_media", label: t.media, items: [{ to: "/media", label: t.library, kind: "c", key: "media" }] });
-    return list;
-  }, [schema, session.media, t]);
+  const sections = React.useMemo(() => navSections(schema, t), [schema, t]);
+  const hasMedia = Boolean(session.media?.library);
+  const hasReview = session.workflow === "pull-request";
+  const [drafts, setDrafts] = React.useState(0);
+  React.useEffect(() => {
+    if (!hasReview) return;
+    let live = true;
+    api.drafts().then((r) => live && setDrafts(r.drafts.length)).catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [api, hasReview, draftTick, viewTick]);
   const { view, parts } = parse(path);
 
   const logout = async () => {
@@ -112,13 +120,15 @@ function Shell() {
   };
 
   let body: React.ReactNode;
-  if (view === "c" && parts[0]) body = parts[1] ? <EntryView key={`${parts[0]}/${parts[1]}`} name={parts[0]} slug={parts[1]} /> : <CollectionView name={parts[0]} />;
-  else if (view === "s" && parts[0]) body = <SingletonView key={parts[0]} name={parts[0]} />;
+  if (view === "c" && parts[0]) body = parts[1] ? <EntryView key={`${parts[0]}/${parts[1]}/${viewTick}`} name={parts[0]} slug={parts[1]} /> : <CollectionView name={parts[0]} />;
+  else if (view === "s" && parts[0]) body = <SingletonView key={`${parts[0]}/${viewTick}`} name={parts[0]} />;
   else if (view === "media") body = <MediaView />;
-  else if (view === "f" && parts[0]) body = <FileSetView key={`${parts[0]}/${parts[1] ?? ""}`} name={parts[0]} file={parts[1]} />;
+  else if (view === "review" && hasReview) body = <ReviewView />;
+  else if (view === "f" && parts[0]) body = <FileSetView key={`${parts[0]}/${parts[1] ?? ""}/${viewTick}`} name={parts[0]} file={parts[1]} />;
   else body = <Dashboard />;
 
   const q = nav.trim().toLowerCase();
+  const area: "content" | "media" | "review" = view === "media" ? "media" : view === "review" ? "review" : "content";
   return (
     <div className={cx("zs-app", menu && "is-menu")}>
       <header className="zs-topbar">
@@ -137,13 +147,34 @@ function Shell() {
           </span>
         </Link>
 
-        <div className="zs-search zs-side-search">
-          <Search />
-          <input value={nav} onChange={(e) => setNav(e.target.value)} placeholder={t.search} />
-        </div>
+        {(hasMedia || hasReview) && (
+          <div className="zs-sidetabs" role="tablist">
+            <button type="button" role="tab" aria-selected={area === "content"} className={cx(area === "content" && "is-on")} onClick={() => navigate("/")}>
+              <FileText /> {t.content}
+            </button>
+            {hasMedia && (
+              <button type="button" role="tab" aria-selected={area === "media"} className={cx(area === "media" && "is-on")} onClick={() => navigate("/media")}>
+                <Globe /> {t.media}
+              </button>
+            )}
+            {hasReview && (
+              <button type="button" role="tab" aria-selected={area === "review"} className={cx(area === "review" && "is-on")} onClick={() => navigate("/review")}>
+                <Stack /> {t.review}
+                {drafts > 0 && <span className="zs-tab-count">{drafts}</span>}
+              </button>
+            )}
+          </div>
+        )}
+
+        {area === "content" && (
+          <div className="zs-search zs-side-search">
+            <Search />
+            <input value={nav} onChange={(e) => setNav(e.target.value)} placeholder={t.search} />
+          </div>
+        )}
 
         <nav>
-          {sections.map((s) => {
+          {area === "content" && sections.map((s) => {
             const items = s.items.filter((i) => !q || i.label.toLowerCase().includes(q));
             if (!items.length) return null;
             return (
@@ -151,7 +182,8 @@ function Shell() {
                 <h5>{s.label}</h5>
                 {items.map((i) => (
                   <Link key={i.to} to={i.to} className={cx("zs-nav-item", (path === i.to || path.startsWith(`${i.to}/`)) && "is-on")}>
-                    {i.label}
+                    <KindIcon kind={i.kind} />
+                    <span>{i.label}</span>
                   </Link>
                 ))}
               </div>
@@ -178,3 +210,8 @@ function Shell() {
   );
 }
 
+
+function KindIcon({ kind }: { kind: NavItem["kind"] }) {
+  const Icon = kind === "c" ? Stack : kind === "s" ? FileText : Globe;
+  return <Icon className="zs-kind" width={14} height={14} />;
+}

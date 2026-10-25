@@ -1,3 +1,5 @@
+import type { DraftInfo } from "./types";
+
 export type MediaEntry = { key: string; url: string; size?: number; modified?: string };
 
 export type ServerIssue = { locale: string; path: (string | number)[]; code: string; params?: Record<string, unknown> };
@@ -41,6 +43,9 @@ export function createApi(base: string) {
     upload,
     mediaList: (cursor?: string) =>
       request<{ items: MediaEntry[]; next?: string }>("GET", `/media?limit=48${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ""}`),
+    drafts: () => request<{ drafts: DraftInfo[] }>("GET", "/drafts"),
+    publishDraft: (n: number) => request<{ ok: boolean }>("POST", `/drafts/${n}/publish`, {}),
+    discardDraft: (n: number) => request<{ ok: boolean }>("DELETE", `/drafts/${n}`),
     mediaDelete: (key: string) => request<{ ok: boolean }>("DELETE", `/media?key=${encodeURIComponent(key)}`),
     get: <T,>(path: string) => request<T>("GET", path),
     post: <T,>(path: string, body: unknown) => request<T>("POST", path, body),

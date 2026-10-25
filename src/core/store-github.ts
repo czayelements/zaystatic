@@ -9,14 +9,17 @@ const DEFAULT_API = "https://api.github.com";
  * (many files in a single commit). Commits are made with the signed-in user's
  * own token.
  */
-export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT_API): Store {
-  const base = `${apiBase}/repos/${repo.owner}/${repo.name}`;
-  /* Content-addressed: the same sha is always the same text. Kept for the life of the process. */
-  const blobs = new Map<string, string>();
-  const shaOf = new Map<string, string>();
+export type GithubClient = {
+  base: string;
+  call: (url: string, init?: RequestInit, accept?: string) => Promise<Response>;
+  json: <T>(res: Response, what: string) => Promise<T>;
+};
 
-  const call = async (url: string, init: RequestInit = {}, accept = "application/vnd.github+json") => {
-    const res = await fetch(url, {
+/** Thin authenticated fetch wrapper shared by the store and the pull-request workflow. */
+export function githubClient(token: string, repo: Pick<Repo, "owner" | "name">, apiBase: string = DEFAULT_API): GithubClient {
+  const base = `${apiBase}/repos/${repo.owner}/${repo.name}`;
+  const call: GithubClient["call"] = async (url, init = {}, accept = "application/vnd.github+json") =>
+    fetch(url, {
       ...init,
       cache: "no-store",
       headers: {
@@ -26,16 +29,23 @@ export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT
         ...(init.body ? { "Content-Type": "application/json" } : {}),
       },
     });
-    return res;
-  };
-
-  const json = async <T>(res: Response, what: string): Promise<T> => {
+  const json: GithubClient["json"] = async <T,>(res: Response, what: string): Promise<T> => {
     if (!res.ok) {
       const detail = await res.text().catch(() => "");
       throw new Error(`GitHub ${what}: ${res.status} ${detail.slice(0, 200)}`);
     }
     return (await res.json()) as T;
   };
+  return { base, call, json };
+}
+
+export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT_API): Store {
+  const { base, call, json } = githubClient(token, repo, apiBase);
+  /* Branch names may contain slashes (draft branches do): keep them in ref paths, encode the rest. */
+  const refPath = repo.branch.split("/").map(encodeURIComponent).join("/");
+  /* Content-addressed: the same sha is always the same text. Kept for the life of the process. */
+  const blobs = new Map<string, string>();
+  const shaOf = new Map<string, string>();
 
   const blob = async (sha: string) => {
     const hit = blobs.get(sha);
@@ -59,7 +69,9 @@ export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT
     },
 
     async listTree(dir) {
-      const res = await call(`${base}/git/trees/${encodeURIComponent(repo.branch)}?recursive=1`);
+      const head = await json<{ object: { sha: string } }>(await call(`${base}/git/ref/heads/${refPath}`), "ref");
+      const commit = await json<{ tree: { sha: string } }>(await call(`${base}/git/commits/${head.object.sha}`), "commit");
+      const res = await call(`${base}/git/trees/${commit.tree.sha}?recursive=1`);
       const data = await json<{ tree: { path: string; type: string }[]; truncated?: boolean }>(res, "tree");
       const prefix = `${dir.replace(/\/$/, "")}/`;
       return data.tree.filter((e) => e.type === "blob" && e.path.startsWith(prefix) && !e.path.split("/").some((p) => p.startsWith("."))).map((e) => e.path);
@@ -83,7 +95,7 @@ export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT
 
     async commit(changes: Change[], message: string) {
       const head = await json<{ object: { sha: string } }>(
-        await call(`${base}/git/ref/heads/${encodeURIComponent(repo.branch)}`),
+        await call(`${base}/git/ref/heads/${refPath}`),
         "ref",
       );
       const parent = await json<{ tree: { sha: string } }>(await call(`${base}/git/commits/${head.object.sha}`), "commit");
@@ -118,7 +130,7 @@ export function githubStore(token: string, repo: Repo, apiBase: string = DEFAULT
         "commit create",
       );
       /* force=false: if another commit slipped in, the update is rejected and nobody's change is overwritten. */
-      const update = await call(`${base}/git/refs/heads/${encodeURIComponent(repo.branch)}`, {
+      const update = await call(`${base}/git/refs/heads/${refPath}`, {
         method: "PATCH",
         body: JSON.stringify({ sha: commit.sha, force: false }),
       });

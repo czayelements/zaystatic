@@ -17,6 +17,8 @@ export type SessionInfo = {
   repo: string | null;
   branch: string;
   name: string;
+  /** How saves are published. */
+  workflow: "direct" | "pull-request";
   /** Panel UI language code (see `locales/`). */
   language: string;
   /** The host's own string overrides / extra language, from `translations` in the config. */
@@ -25,6 +27,15 @@ export type SessionInfo = {
   basePath: string;
   /** Limits when uploads are enabled; null when disabled (paste-a-link only). */
   media: { maxBytes: number; accept: string[]; library: boolean; canDelete: boolean } | null;
+};
+
+export type DraftRef = { number: number; url: string; branch: string; previewUrl?: string };
+
+export type DraftInfo = DraftRef & {
+  target: { kind: "c" | "s" | "f"; name: string; slug?: string; file?: string };
+  title: string;
+  updatedAt: string;
+  author?: { login: string; avatar?: string };
 };
 
 export type EntrySummary = {

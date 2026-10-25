@@ -3,7 +3,8 @@
 import * as React from "react";
 
 import { useZay } from "./context";
-import { Check } from "./icons";
+import { Branch, Check, External } from "./icons";
+import type { DraftRef } from "./types";
 import { cx, isEmpty } from "./util";
 
 /** Runs a request and starts a new one when `deps` change. The loading state is derived from the request key. */
@@ -161,4 +162,47 @@ export function useDirty<T>(current: T | undefined, saved: string | null) {
     return () => setGuard(null);
   }, [setGuard]);
   return dirty;
+}
+
+/** Draft state of the entry being edited: link to the pull request, publish and discard. */
+export function DraftControls({ draft, dirty, onChanged }: { draft: DraftRef | null; dirty: boolean; onChanged: () => void }) {
+  const { api, t, toast, reloadView, bumpDrafts } = useZay();
+  const [busy, setBusy] = React.useState(false);
+  if (!draft) return null;
+
+  const run = async (kind: "publish" | "discard") => {
+    if (!window.confirm(kind === "publish" ? t.confirmPublish : t.confirmDiscard)) return;
+    setBusy(true);
+    try {
+      if (kind === "publish") await api.publishDraft(draft.number);
+      else await api.discardDraft(draft.number);
+      toast("ok", kind === "publish" ? t.published : t.deleted);
+      bumpDrafts();
+      onChanged();
+      reloadView();
+    } catch (e) {
+      toast("error", (e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="zs-draft">
+      <a className="zs-pill zs-pill-draft" href={draft.url} target="_blank" rel="noreferrer" title={t.openPr}>
+        <Branch /> {t.draft} #{draft.number} <External />
+      </a>
+      {draft.previewUrl && (
+        <a className="zs-btn zs-btn-sm zs-btn-ghost" href={draft.previewUrl} target="_blank" rel="noreferrer">
+          {t.preview} <External />
+        </a>
+      )}
+      <button type="button" className="zs-btn zs-btn-sm zs-btn-primary" disabled={busy || dirty} title={dirty ? t.unsaved : undefined} onClick={() => void run("publish")}>
+        {t.publish}
+      </button>
+      <button type="button" className="zs-btn zs-btn-sm zs-btn-ghost zs-danger" disabled={busy} onClick={() => void run("discard")}>
+        {t.discard}
+      </button>
+    </div>
+  );
 }
