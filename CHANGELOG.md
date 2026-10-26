@@ -17,4 +17,5 @@
 - Sidebar areas (Content / Media / Review) and automatic Collections / Singletons / File sets sections.
 - Reader API (`@czayelements/zaystatic/reader`): `createReader` and `createGitHubReader`, language-aware.
 - `repo.pathPrefix` / `ZAY_PATH_PREFIX`: content inside a sub-folder of the repository.
+- The package can also be `require()`d from CommonJS on Node 22+ (exports gained a `default` condition).
 - Adapters: Next.js, Node `http`/Express, any fetch-style runtime.

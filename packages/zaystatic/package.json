@@ -24,29 +24,35 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./next": {
       "types": "./dist/next.d.ts",
-      "import": "./dist/next.js"
+      "import": "./dist/next.js",
+      "default": "./dist/next.js"
     },
     "./ui": {
       "types": "./dist/ui.d.ts",
-      "import": "./dist/ui.js"
+      "import": "./dist/ui.js",
+      "default": "./dist/ui.js"
     },
     "./schema": {
       "types": "./dist/schema.d.mts",
-      "import": "./dist/schema.mjs"
+      "import": "./dist/schema.mjs",
+      "default": "./dist/schema.mjs"
     },
     "./styles.css": "./dist/styles.css",
     "./package.json": "./package.json",
     "./node": {
       "types": "./dist/node.d.ts",
-      "import": "./dist/node.js"
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
     },
     "./reader": {
       "types": "./dist/reader.d.ts",
-      "import": "./dist/reader.js"
+      "import": "./dist/reader.js",
+      "default": "./dist/reader.js"
     }
   },
   "scripts": {
