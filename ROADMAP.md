@@ -114,7 +114,7 @@ pull-request workflow** (`workflow: "pull-request"`): draft branch + PR per entr
 (merge) / Discard (close), preview links (`previewUrl` template), draft chips in lists.
 
 **Panel**: drag-and-drop lists/blocks, field search, ⌘S, unsaved-changes guard, light/dark, mobile layout, list sorting.
-**Extensibility**: custom editors (several per collection/singleton, with a view switcher, language-aware props) and per-field widgets, both registered by name in `<ZayApp editors widgets>`; the panel's parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) are exported for reuse. Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
+**Visual page builder** (`createBlockBuilder`): site-rendered previews on a canvas, drag-from-palette and click-to-add, per-block settings, translation-aware (structure locked outside the default language). **Extensibility**: custom editors (several per collection/singleton, with a view switcher, language-aware props) and per-field widgets, both registered by name in `<ZayApp editors widgets>`; the panel's parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) are exported for reuse. Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
 into automatic Collections / Singletons / File sets sections; kind icons on every item.
 
 **Panel language management**: the package owns the panel languages (`en`, `tr`); language picker in the sidebar (choice remembered), opt-in browser-language detection, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); projects cannot add or override panel strings.
@@ -150,7 +150,8 @@ Ordered by value. Each item says where to start and what "done" means.
    image dimensions, alt-text storage.
 3. **Preview**: live preview of the rendered page (iframe against a preview URL, scroll-sync, per-collection URL template).
    The pull-request workflow already yields deploy-preview URLs; start there.
-4. **Rich text**: opt-in WYSIWYG for markdown with a lossless round trip, MDX component insertion.
+4. **Block builder follow-ups**: inline editing on the canvas (type straight into a preview), nested blocks / columns, undo/redo, keyboard shortcuts (delete, duplicate, arrows), responsive preview widths (phone / tablet / desktop), block templates and a "save as reusable block", drag between pages. Not yet tried in a browser at phone width.
+5. **Rich text**: opt-in WYSIWYG for markdown with a lossless round trip, MDX component insertion.
 5. **Search and integrity**: content-wide search; broken-reference and "used in" warnings for relations and images.
 6. **Roles and permissions**: editor / publisher / admin; per-collection access; `ZAY_ALLOWED_USERS` becomes a map or a callback.
 7. **History and revert** per entry from Git; scheduled publishing; webhooks / a "publish" button for hosts that do not rebuild on push.

@@ -426,6 +426,49 @@ export function ColorWidget({ value, onChange, errors }: WidgetProps) {
 A widget gets `field`, `value`, `onChange`, `path`, `errors`, and (in a translation tab) `reference` and `translating`. It works on
 any field type, including lists and objects, and inside lists and blocks.
 
+### A visual page builder, out of the box
+
+For content made of `blocks` (landing pages, long articles with typed sections) the package ships a ready-made visual editor.
+You supply only how each block *looks*; the canvas, the palette and the settings are built in:
+
+```tsx
+import { ZayApp, createBlockBuilder } from "zay-static/ui";
+import { HeroPreview, FeaturesPreview } from "./block-previews"; // your site's own components
+
+const PageBuilder = createBlockBuilder({
+  field: "sections",                                    // the blocks field it edits
+  previews: { hero: HeroPreview, features: FeaturesPreview }, // block type -> how it looks on the canvas
+  Frame: SitePageFrame,                                 // optional: your fonts, width, background around the page
+});
+
+<ZayApp apiPath="/api/cms" editors={{ page: PageBuilder }} />
+```
+```ts
+defineSingleton({
+  label: "Home page", file: "content/home.json",
+  editors: [{ name: "page", label: "Builder", default: true }],
+  i18n: { fields: ["sections.title", "sections.body"] },
+  fields: {
+    sections: blocks("Sections", {
+      hero: block("Hero", { title: str("Title"), image: image("Image") }, { icon: "H", description: "Big headline" }),
+      features: block("Features", { items: list("Items", str("Item")) }, { icon: "F" }),
+    }),
+  },
+});
+```
+
+- **Centre, the page.** Every block is drawn by *your* preview component (`BlockPreviewProps`: `block` values, `type`, `locale`,
+  `selected`), so editors see what visitors will. Types without a preview get a simple generic card. Click a block to select it;
+  drag the handle to reorder; the toolbar moves, duplicates and deletes. Previews are pictures: clicks select, links do not fire.
+- **Right, a toolbar.** *Blocks*: a palette of the schema's block types (`block(label, fields, { icon, description })`), drag a card onto the
+  page (a line shows where it lands) or click it to add after the selected block. *Settings*: the selected block's fields, with
+  validation, image uploads and the media library, as in the standard form.
+- **Translations.** With translated content the page structure follows the default language (translations stay position-aligned): in
+  other language tabs the palette and toolbar are locked, previews show the translated text over the default's, and the settings show
+  only the fields chosen in `i18n.fields`. Structural changes in the default language are mirrored into every translation.
+- **Your own variations.** `createBlockBuilder` is a normal editor, so you can wrap it, or write a different editor from scratch
+  with the same parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`).
+
 Because editors run in your app they can import your site's own components, so what editors see is exactly what visitors see (czay.dev
 does this for its roadmap diagrams: the editor draws the same diagram the public page does and lets you drag the boxes around).
 Custom editors are loaded by your code, so keep heavy ones lazy (`next/dynamic`) to keep the rest of the panel light.
