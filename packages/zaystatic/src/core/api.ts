@@ -57,6 +57,15 @@ export function createHandler(input: ZayConfig) {
   /** The branch content is read from and committed to: ZAY_BRANCH (to try the panel on a test branch), else the config, else main. */
   const baseBranch = () => process.env.ZAY_BRANCH?.trim() || config.repo?.branch || "main";
 
+  let warned = false;
+  const warnClosed = () => {
+    if (warned) return;
+    warned = true;
+    console.warn(
+      "[zaystatic] The panel is closed: set ZAY_MODE=github with ZAY_GITHUB_CLIENT_ID, ZAY_GITHUB_CLIENT_SECRET, ZAY_SESSION_SECRET (at least 32 characters) and ZAY_ALLOWED_USERS, and config.repo.",
+    );
+  };
+
   return async function handle(request: Request): Promise<Response> {
     try {
       return await route(request);
@@ -72,6 +81,11 @@ export function createHandler(input: ZayConfig) {
     const method = request.method.toUpperCase();
     const parts = url.pathname.slice(api.length).split("/").filter(Boolean).map(decodeURIComponent);
     const mode = resolveMode(config);
+    /* A closed panel does not exist for outsiders: every endpoint answers 404 (the reason goes to the server log, once). */
+    if (mode === "unconfigured") {
+      warnClosed();
+      throw new HttpError(404, "not found");
+    }
     const env = oauthEnv();
     const origin = env.publicUrl ?? url.origin;
     const secure = origin.startsWith("https:");
@@ -150,7 +164,6 @@ export function createHandler(input: ZayConfig) {
     }
 
     /* ── Everything below requires an identity ── */
-    if (mode === "unconfigured") throw new HttpError(503, "The panel is not configured (ZAY_* environment variables; ZAY_SESSION_SECRET needs at least 32 characters).");
     if (mode === "github" && !session) throw new HttpError(401, "Sign-in required");
 
     if (method !== "GET") {

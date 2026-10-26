@@ -9,7 +9,7 @@ The panel has two run modes.
 | `local` | your machine | none | files on disk |
 | `github` | production | GitHub | commits to your repository |
 
-Without `ZAY_MODE`, the panel runs in `local` mode in development and in `github` mode in production. **If production is missing the GitHub settings, the panel stays closed.** It never falls back to local files.
+Without `ZAY_MODE`, the panel runs in `local` mode in development and in `github` mode in production. **If production is missing the GitHub settings, the panel stays closed.** It never falls back to local files. A closed panel does not exist for visitors: every `/api/zay` endpoint answers 404 (the reason is logged once on the server), and the panel page can do the same with `isPanelOpen`, see [quick start](/docs/quick-start).
 
 <Callout type="warning">
 `ZAY_MODE=local` in production gives everyone who can reach the page write access to the files. Use it only on your own machine.

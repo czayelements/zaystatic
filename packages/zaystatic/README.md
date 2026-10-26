@@ -382,7 +382,7 @@ platform's request-body limit applies (about 6 MB on Netlify and Vercel function
 | `ZAY_PATH_PREFIX` | optional; overrides `repo.pathPrefix` (the content folder inside the repository) |
 
 The signed-in user's own token (scope `repo`) makes the commits, so history shows who changed
-what. If the variables are missing in production the panel stays closed: it never falls back to
+what. If the variables are missing in production the panel stays closed (its API answers 404; in a Next.js page use `if (!isPanelOpen(config)) notFound()` with `isPanelOpen` from `@czayelements/zaystatic/next`): it never falls back to
 local files.
 
 ## Custom editors and widgets

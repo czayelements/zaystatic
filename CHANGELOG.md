@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-alpha.3
+
+- A closed panel (production without the ZAY_* settings) answers 404 on every endpoint instead of 503; the reason is logged once on the server. New `isPanelOpen(config)` in `@czayelements/zaystatic/next` for the panel page.
+
 ## 0.1.0-alpha.2
 
 - Reader API (`@czayelements/zaystatic/reader`), `repo.pathPrefix` / `ZAY_PATH_PREFIX`, `require()` from CommonJS on Node 22+, `ZAY_BRANCH`.

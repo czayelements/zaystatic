@@ -110,3 +110,25 @@ test("a short ZAY_SESSION_SECRET keeps the panel closed (and the message says wh
   assert.equal(resolveMode(cfg, { NODE_ENV: "production", ...ok, ZAY_SESSION_SECRET: "too-short" }), "unconfigured");
   assert.equal(resolveMode(cfg, { NODE_ENV: "production", ...ok, ZAY_SESSION_SECRET: SECRET }), "github");
 });
+
+test("a closed panel answers 404 on every endpoint", async () => {
+  const keys = ["ZAY_MODE", "ZAY_GITHUB_CLIENT_ID", "ZAY_GITHUB_CLIENT_SECRET", "ZAY_SESSION_SECRET", "ZAY_ALLOWED_USERS", "NODE_ENV"] as const;
+  const before = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  for (const k of keys) delete process.env[k];
+  (process.env as Record<string, string>).NODE_ENV = "production";
+  const warn = console.warn;
+  console.warn = () => {};
+  try {
+    const handler = createHandler(config("/x"));
+    for (const path of ["/session", "/collections/people", "/auth/login"]) {
+      const res = await handler(new Request(`http://localhost/api/zay${path}`));
+      assert.equal(res.status, 404, path);
+    }
+  } finally {
+    console.warn = warn;
+    for (const k of keys) {
+      if (before[k] === undefined) delete process.env[k];
+      else process.env[k] = before[k];
+    }
+  }
+});

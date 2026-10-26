@@ -123,4 +123,15 @@ If you use locale-routing middleware, exclude the panel path from its matcher.
 
 ## Going to production
 
-Production saves commit to GitHub, so set up sign-in first: create a GitHub OAuth App and a few environment variables. [Authentication](/docs/authentication) walks through it, and [deploying](/docs/deploying) covers hosting notes. Until those variables exist the panel stays closed; it never falls back to local files in production.
+Production saves commit to GitHub, so set up sign-in first: create a GitHub OAuth App and a few environment variables. [Authentication](/docs/authentication) walks through it, and [deploying](/docs/deploying) covers hosting notes. Until those variables exist the panel stays closed (its API answers 404); it never falls back to local files in production. Make the page match with `isPanelOpen`:
+
+```tsx
+import { isPanelOpen } from "@czayelements/zaystatic/next";
+import { notFound } from "next/navigation";
+import config from "@/zaystatic.config";
+
+export default function PanelPage() {
+  if (!isPanelOpen(config)) notFound();
+  return <Panel />;
+}
+```
