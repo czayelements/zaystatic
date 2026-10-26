@@ -1486,6 +1486,9 @@
   border-radius: 10px;
   background: #faf9f5;
 }
+.zs-generic .zs-block-badge {
+  justify-self: start;
+}
 .zs-generic h3 {
   font-size: 20px;
   line-height: 1.2;

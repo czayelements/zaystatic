@@ -122,8 +122,7 @@ function Builder({ options, ...props }: EditorProps & { options: BlockBuilderOpt
     const next = [...items];
     next.splice(index, 0, blankItem(def, type) as Doc);
     commit(next, { type: "add", index, blockType: type });
-    setSelected(id);
-    setTab("settings");
+    setSelected(id); /* selected, but the palette stays open so several blocks can be added in a row */
   };
   const move = (from: number, to: number) => {
     if (from === to || to < 0 || to >= items.length) return;
