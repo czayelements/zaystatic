@@ -90,6 +90,7 @@
   },
   "homepage": "https://github.com/czayelements/zaystatic#readme",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "tag": "alpha"
   }
 }

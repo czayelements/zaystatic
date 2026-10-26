@@ -6,5 +6,5 @@ export const site = {
     "Schema-driven forms, per-language content, drag-and-drop lists and blocks, a visual page builder and image uploads. Content stays as plain files in your repository.",
   repo: "https://github.com/czayelements/zaystatic",
   npm: "https://www.npmjs.com/package/@czayelements/zaystatic",
-  install: "npm install @czayelements/zaystatic",
+  install: "npm install @czayelements/zaystatic@alpha",
 };

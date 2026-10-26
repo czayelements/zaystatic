@@ -43,7 +43,7 @@ the very same schema the panel uses.
 ## Install
 
 ```bash
-npm install @czayelements/zaystatic        # or pnpm add / yarn add
+npm install @czayelements/zaystatic@alpha        # or pnpm add / yarn add
 ```
 
 Requires Node 20+. The UI needs React 19 (peer dependency).
