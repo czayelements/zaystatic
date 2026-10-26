@@ -41,7 +41,7 @@ export function resolveMode(config: ZayConfig, env: Env = process.env): Mode {
 
 /* ── Cookie: session sealed with AES-256-GCM ──────────────────── */
 
-const key = (secret: string) => createHash("sha256").update(`zay-static:${secret}`).digest();
+const key = (secret: string) => createHash("sha256").update(`zaystatic:${secret}`).digest();
 
 export function seal(session: Session, secret: string): string {
   const iv = randomBytes(12);

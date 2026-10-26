@@ -1,4 +1,4 @@
-/* zay-static — a self-contained stylesheet. Every class is `zs-` prefixed and only takes effect inside `.zs-root`.
+/* zaystatic — a self-contained stylesheet. Every class is `zs-` prefixed and only takes effect inside `.zs-root`.
    Customise by overriding the --zs-* variables on `.zs-root`. */
 
 .zs-root {

@@ -130,7 +130,7 @@ export class PullRequests {
     const pr = await this.api.json<RawPR>(
       await this.api.call(`${this.api.base}/pulls`, {
         method: "POST",
-        body: JSON.stringify({ title, head: branch, base: this.repo.branch, body: "Draft created from the zay-static panel. Publish or discard it there, or merge this pull request." }),
+        body: JSON.stringify({ title, head: branch, base: this.repo.branch, body: "Draft created from the zaystatic panel. Publish or discard it there, or merge this pull request." }),
       }),
       "open pull request",
     );

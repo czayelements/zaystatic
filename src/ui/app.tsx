@@ -157,7 +157,7 @@ function Shell() {
           <span className="zs-logo">z</span>
           <span>
             <b>{session.name}</b>
-            <small>zay-static</small>
+            <small>zaystatic</small>
           </span>
         </Link>
 

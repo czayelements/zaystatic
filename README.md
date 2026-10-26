@@ -1,7 +1,7 @@
-# zay-static
+# zaystatic
 
 A small, Git-based content panel. Your content stays as plain files in your
-repository; zay-static gives editors a polished panel to change it and commits
+repository; zaystatic gives editors a polished panel to change it and commits
 straight to your branch. No database, no hosted service, no lock-in: stop using
 it tomorrow and your content is still just JSON and Markdown.
 
@@ -34,20 +34,20 @@ it tomorrow and your content is still just JSON and Markdown.
 ```
 
 Your site reads the same files at build time with whatever it likes; the field
-definitions are plain ESM (`zay-static/schema`) so a Node build script can import
+definitions are plain ESM (`zaystatic/schema`) so a Node build script can import
 the very same schema the panel uses.
 
 ## Install
 
 ```bash
-npm install zay-static        # or pnpm add / yarn add
+npm install zaystatic        # or pnpm add / yarn add
 ```
 
 Requires Node 20+. The UI needs React 19 (peer dependency).
 
 ## Quick start (Next.js)
 
-zay-static is configured by two files in your project:
+zaystatic is configured by two files in your project:
 
 - **`zay.schema.ts`**: the *content model* (what kinds of content exist and their fields).
 - **`zay.config.ts`**: the *settings* (name, locales, paths, repository, image storage).
@@ -56,8 +56,8 @@ zay-static is configured by two files in your project:
 
 ```ts
 // zay.schema.ts
-import { defineSchema, defineCollection, defineSingleton } from "zay-static";
-import { str, image, markdown, select, blocks, block } from "zay-static/schema";
+import { defineSchema, defineCollection, defineSingleton } from "zaystatic";
+import { str, image, markdown, select, blocks, block } from "zaystatic/schema";
 
 export default defineSchema({
   groups: [{ id: "content", label: "Content" }, { id: "site", label: "Site" }],
@@ -95,7 +95,7 @@ export default defineSchema({
 
 ```ts
 // zay.config.ts
-import { defineConfig, repoMedia, s3MediaFromEnv } from "zay-static";
+import { defineConfig, repoMedia, s3MediaFromEnv } from "zaystatic";
 import schema from "./zay.schema";
 
 export default defineConfig({
@@ -117,7 +117,7 @@ export default defineConfig({
 
 ```ts
 // app/api/cms/[...path]/route.ts
-import { createNextHandlers } from "zay-static/next";
+import { createNextHandlers } from "zaystatic/next";
 import config from "@/zay.config";
 
 export const runtime = "nodejs";
@@ -129,7 +129,7 @@ export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
 
 ```tsx
 // app/cms/layout.tsx  (own root layout: no site chrome)
-import "zay-static/styles.css";
+import "zaystatic/styles.css";
 export default ({ children }: { children: React.ReactNode }) => (
   <html lang="en"><body style={{ margin: 0 }}>{children}</body></html>
 );
@@ -140,7 +140,7 @@ export default () => <Panel />;
 
 // app/cms/panel.tsx
 "use client";
-import { ZayApp } from "zay-static/ui";
+import { ZayApp } from "zaystatic/ui";
 export const Panel = () => <ZayApp apiPath="/api/cms" />;
 ```
 
@@ -157,7 +157,7 @@ The server side is `createHandler(config): (request: Request) => Promise<Respons
 standard fetch-style function, so any runtime that speaks Web `Request`/`Response` can host it:
 
 ```ts
-import { createHandler } from "zay-static";
+import { createHandler } from "zaystatic";
 const handle = createHandler(config);
 
 // Hono
@@ -171,14 +171,14 @@ export const GET = ({ request }) => handle(request); // …POST, PUT, DELETE the
 For Node's `http` and Express there is an adapter:
 
 ```ts
-import { createNodeHandler } from "zay-static/node";
+import { createNodeHandler } from "zaystatic/node";
 app.use("/api/cms", createNodeHandler(config));            // Express
 http.createServer(createNodeHandler(config)).listen(3000);  // plain Node
 ```
 
-The UI (`zay-static/ui`) is a React component and runs in any React 19 app: Next.js,
+The UI (`zaystatic/ui`) is a React component and runs in any React 19 app: Next.js,
 Vite, React Router/Remix, Astro islands. It only needs the API path and the stylesheet
-(`zay-static/styles.css`). The server needs a Node-compatible runtime for `node:crypto`
+(`zaystatic/styles.css`). The server needs a Node-compatible runtime for `node:crypto`
 (sessions, request signing); fs mode needs a real file system.
 
 ## Content model
@@ -236,7 +236,7 @@ Options common to all: `hint`, `default`, `required` and the other [validation](
 field in the default language (add, remove, move, duplicate) are mirrored into the translations,
 which stay position-aligned.
 
-`normalize(field, raw)` (from `zay-static/schema`) fills defaults the same way the panel does, so
+`normalize(field, raw)` (from `zaystatic/schema`) fills defaults the same way the panel does, so
 your build can read files that only contain the fields someone filled in.
 
 ## Draft workflow (pull requests)
@@ -316,7 +316,7 @@ treat as "not translated yet".
 ## Images
 
 ```ts
-import { defineConfig, s3Media, s3MediaFromEnv, repoMedia } from "zay-static";
+import { defineConfig, s3Media, s3MediaFromEnv, repoMedia } from "zaystatic";
 
 defineConfig({
   // …
@@ -363,12 +363,12 @@ local files.
 ## Custom editors and widgets
 
 The panel's standard form works for any schema, but your data may deserve a better view: a diagram, a page layout, a
-board, a map. zay-static lets **your site render the data however it wants** while the panel keeps saving, validation,
+board, a map. zaystatic lets **your site render the data however it wants** while the panel keeps saving, validation,
 drafts, language tabs and image uploads. Two extension points, both plain React components registered by name:
 
 ```tsx
 "use client";
-import { ZayApp } from "zay-static/ui";
+import { ZayApp } from "zaystatic/ui";
 import { RoadmapEditor } from "./roadmap-editor";
 import { ColorWidget } from "./color-widget";
 
@@ -404,7 +404,7 @@ An editor receives `EditorProps`:
 With translated content the panel shows the language tabs above your editor and passes the active language's document
 (`languages: "tabs"`, the default); use `languages: "self"` to get all documents and manage languages yourself.
 
-Build your editor from the panel's own parts, all exported from `zay-static/ui`:
+Build your editor from the panel's own parts, all exported from `zaystatic/ui`:
 
 - `PanelForm` — the schema-driven form (lists, blocks, drag and drop, validation) for any `fields`, so you can render
   *part* of a document your own way and hand the rest to the standard form;
@@ -432,7 +432,7 @@ For content made of `blocks` (landing pages, long articles with typed sections) 
 You supply only how each block *looks*; the canvas, the palette and the settings are built in:
 
 ```tsx
-import { ZayApp, createBlockBuilder } from "zay-static/ui";
+import { ZayApp, createBlockBuilder } from "zaystatic/ui";
 import { HeroPreview, FeaturesPreview } from "./block-previews"; // your site's own components
 
 const PageBuilder = createBlockBuilder({
@@ -506,12 +506,12 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 
 | import | contents |
 | --- | --- |
-| `zay-static` | `defineConfig`, `defineSchema`, `defineCollection`, `defineSingleton`, `defineFileSet`, `createHandler`, `resolveConfig`, `s3Media`, `s3MediaFromEnv`, `repoMedia`, types |
-| `zay-static/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
-| `zay-static/next` | `createNextHandlers` |
-| `zay-static/node` | `createNodeHandler` |
-| `zay-static/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
-| `zay-static/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
+| `zaystatic` | `defineConfig`, `defineSchema`, `defineCollection`, `defineSingleton`, `defineFileSet`, `createHandler`, `resolveConfig`, `s3Media`, `s3MediaFromEnv`, `repoMedia`, types |
+| `zaystatic/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
+| `zaystatic/next` | `createNextHandlers` |
+| `zaystatic/node` | `createNodeHandler` |
+| `zaystatic/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
+| `zaystatic/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
 
 ## Limitations
 

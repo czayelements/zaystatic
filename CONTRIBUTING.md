@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping. zay-static is small on purpose: Git as the backend, schema in code, a calm UI.
+Thanks for helping. zaystatic is small on purpose: Git as the backend, schema in code, a calm UI.
 
 ## Setup
 

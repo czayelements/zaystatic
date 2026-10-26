@@ -1,5 +1,5 @@
 /**
- * zay-static field definition language.
+ * zaystatic field definition language.
  *
  * One source of truth: the same definition drives both the reader that builds
  * your site (`normalize`, which fills in defaults) and the panel's forms. If

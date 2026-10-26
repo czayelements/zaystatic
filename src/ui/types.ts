@@ -70,7 +70,7 @@ export type Docs = Record<string, Record<string, unknown>>;
  * Reading and writing: `value` is the active language's document and `onChange` replaces it. For
  * translated content with `languages: "self"` use `docs` / `setDocs` (every language) instead.
  * Saving, validation, drafts and the language tabs stay with the panel. Build on the panel's own
- * parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) exported from `zay-static/ui`.
+ * parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) exported from `zaystatic/ui`.
  */
 export type EditorProps = {
   kind: "collection" | "singleton";

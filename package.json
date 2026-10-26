@@ -1,5 +1,5 @@
 {
-  "name": "zay-static",
+  "name": "zaystatic",
   "version": "0.1.0",
   "description": "Git-based content panel for Next.js: schema-driven forms, per-locale files, drag-and-drop lists, image uploads (S3-compatible or repo), commits straight to your repository.",
   "keywords": [

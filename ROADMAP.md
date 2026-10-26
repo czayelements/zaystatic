@@ -21,7 +21,7 @@ src/
   schema/dsl.mjs, dsl.d.mts   Field helpers (str, text, markdown, image, int, bool, select, date, datetime,
                               relation(s), list, obj, block/blocks), normalize(), translatableFields(),
                               fieldsFromSample(), isEmptyValue(), validateDoc(). PLAIN ESM on purpose:
-                              user build scripts import it as "zay-static/schema".
+                              user build scripts import it as "zaystatic/schema".
   core/types.ts               Config/Schema/Collection/Singleton/FileSet/Store types, defineX helpers,
                               resolveConfig(), HttpError.
   core/translation.ts         i18n setting: isI18n(), translatableOf() (explicit paths, markers, text-field default).
@@ -73,8 +73,8 @@ pnpm build       # tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prep
    every bundled language must define all keys, enforced by the i18n test).
 
 ### How the czay.dev project consumes this package
-The package lives at `~/Documents/projects/zay-static` (own git repo). The czay.dev site (`~/Documents/czaydev`,
-branch `feat/zay-static-package`) installs it as `"zay-static": "file:../projects/zay-static"` (a copy, because Turbopack
+The package lives at `~/Documents/projects/zaystatic` (own git repo). The czay.dev site (`~/Documents/czaydev`,
+branch `feat/zaystatic-package`) installs it as `"zaystatic": "file:../projects/zaystatic"` (a copy, because Turbopack
 cannot resolve a symlink outside the project root). After changing the package run `pnpm zay:sync` in the site (builds the
 package and reinstalls). The site's `zay.config.ts` holds settings, `zay.schema.ts` the content model (fields are
 defined in `scripts/content/schema.mjs` because the site build reads the same definitions).
@@ -182,7 +182,7 @@ Ordered by value. Each item says where to start and what "done" means.
 - Pick a licence and add `LICENSE`; fill `package.json` (author, repository, bugs, homepage, `files`, `sideEffects`).
 - Set up CI (typecheck, test, build) and a security contact; enable GitHub private vulnerability reporting.
 - `npm publish --provenance`; tag 0.1.0; write the first real CHANGELOG entry.
-- Then switch the czay.dev site from `file:` to the published version and merge `feat/zay-static-package`.
+- Then switch the czay.dev site from `file:` to the published version and merge `feat/zaystatic-package`.
 
 ---
 

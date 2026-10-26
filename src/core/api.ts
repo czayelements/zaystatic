@@ -58,7 +58,7 @@ export function createHandler(input: ZayConfig) {
       return await route(request);
     } catch (error) {
       if (error instanceof HttpError) return json({ error: error.message, ...(error.issues ? { issues: error.issues } : {}) }, { status: error.status });
-      console.error("[zay-static]", error);
+      console.error("[zaystatic]", error);
       return json({ error: (error as Error).message || "Beklenmeyen hata" }, { status: 500 });
     }
   };
@@ -126,7 +126,7 @@ export function createHandler(input: ZayConfig) {
         user: mode === "local" ? { login: "local" } : session && { login: session.login, name: session.name, avatar: session.avatar },
         repo: config.repo ? `${config.repo.owner}/${config.repo.name}` : null,
         branch: config.repo?.branch ?? "main",
-        name: config.name ?? "zay-static",
+        name: config.name ?? "zaystatic",
         /* The package decides which languages exist; the project only picks the default among them. */
         language: isPanelLanguage(config.language) ? config.language : "en",
         languages: PANEL_LANGUAGES,
