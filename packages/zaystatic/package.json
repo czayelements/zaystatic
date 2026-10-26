@@ -1,0 +1,77 @@
+{
+  "name": "zaystatic",
+  "version": "0.1.0",
+  "description": "Git-based content panel for Next.js: schema-driven forms, per-locale files, drag-and-drop lists, image uploads (S3-compatible or repo), commits straight to your repository.",
+  "keywords": [
+    "cms",
+    "git-based",
+    "headless-cms",
+    "nextjs",
+    "content",
+    "i18n",
+    "s3",
+    "r2"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./next": {
+      "types": "./dist/next.d.ts",
+      "import": "./dist/next.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.mts",
+      "import": "./dist/schema.mjs"
+    },
+    "./styles.css": "./dist/styles.css",
+    "./package.json": "./package.json",
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    }
+  },
+  "scripts": {
+    "build": "node scripts/clean.mjs && tsup && node scripts/copy-assets.mjs",
+    "dev": "tsup --watch --onSuccess \"node scripts/copy-assets.mjs\"",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "prepublishOnly": "pnpm typecheck && pnpm test && pnpm build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "react": ">=19",
+    "react-dom": ">=19"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tsup": "^9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

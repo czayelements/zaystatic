@@ -1,0 +1,54 @@
+---
+title: "Other frameworks"
+description: "Run the zaystatic server on Node, Express, Hono, SvelteKit, Astro or Workers, and mount the panel in any React app."
+---
+The server side of zaystatic is one function:
+
+```ts
+import { createHandler } from "zaystatic";
+
+const handle = createHandler(config); // (request: Request) => Promise<Response>
+```
+
+Any runtime that speaks the Web `Request` and `Response` types can host it.
+
+## Node and Express
+
+```ts
+import { createNodeHandler } from "zaystatic/node";
+
+app.use("/api/cms", createNodeHandler(config));              // Express
+http.createServer(createNodeHandler(config)).listen(3000);    // plain Node
+```
+
+The handler matches on `config.apiPath`, so mount it where that path points.
+
+## Fetch-style frameworks
+
+```ts
+// Hono
+app.all("/api/cms/*", (c) => handle(c.req.raw));
+
+// SvelteKit: src/routes/api/cms/[...path]/+server.ts
+export const GET = ({ request }) => handle(request); // POST, PUT and DELETE the same way
+
+// Astro, Remix, React Router: call handle(request) from the route's loader or action
+// Cloudflare Workers, Deno, Bun: handle(request)
+```
+
+<Callout type="warning" title="What the server needs">
+A Node-compatible runtime for `node:crypto` (sessions, request signing). Local mode needs a real file system.
+</Callout>
+
+## The panel in any React app
+
+The panel is a React component and needs only the API path and the stylesheet:
+
+```tsx
+import "zaystatic/styles.css";
+import { ZayApp } from "zaystatic/ui";
+
+export const Panel = () => <ZayApp apiPath="/api/cms" />;
+```
+
+It runs in Next.js, Vite, React Router or Remix, and in Astro islands. Give it its own page without your site's chrome, and make sure the path you mount it on is excluded from any middleware that rewrites URLs.

@@ -1,0 +1,51 @@
+---
+title: "Translating content"
+description: "Turn translation on per collection or singleton, choose the fields to translate, and edit them with language tabs."
+---
+Translating content is a setting of each collection **and each singleton**, independent of the file format:
+
+```ts
+i18n: false                                              // default: one file, one language
+i18n: true                                               // translate the text fields
+i18n: { enabled: true, fields: ["title", "body", "gallery.alt"] }   // translate exactly these
+```
+
+Set the languages once in [the configuration](/docs/configuration): `locales: ["en", "de"]` and `defaultLocale: "en"`.
+
+## What happens on disk
+
+When `i18n` is on, every entry is stored as one file per language:
+
+```text
+content/posts/hello.en.mdx    every field
+content/posts/hello.de.mdx    only the translated fields
+```
+
+A singleton `content/home.json` becomes `content/home.en.json`, `content/home.de.json`. The default language's file carries every field. The other languages carry only the **chosen fields**. An empty translation is never written, and is deleted when its content is cleared. Your site can treat a missing file as "not translated yet".
+
+## Choosing the fields
+
+List them in `i18n.fields`. A dotted path reaches into nested fields:
+
+| Path | Translates |
+| --- | --- |
+| `"title"` | the whole `title` field |
+| `"gallery.alt"` | only `alt` of every item in the `gallery` list |
+| `"seo.description"` | only `description` inside the `seo` object |
+| `"sections.title"` | `title` in every block type that has one |
+
+If you give no `fields`, the per-field shorthand `i18n: "translate"` is used; if no field has it, every top-level text field is translated. A typo in a field name throws when the panel starts, instead of being silently ignored.
+
+## In the panel
+
+Language tabs appear above the form. In a non-default tab the panel shows **only the translated fields**, with the default language's text under each one as a reference, and a "copy from default language" shortcut.
+
+Lists and blocks keep their structure in sync: adding, removing, moving or duplicating an item in the default language does the same in every translation, so translations stay aligned by position. In translation tabs the structure is locked.
+
+<Callout type="note">
+Translations may be partial. [Validation](/docs/validation) rules such as `required` apply to the default language only; other rules apply to whatever is filled in.
+</Callout>
+
+## Content languages versus the panel's language
+
+This page is about your *content*. The language of the panel's own interface (buttons, messages) is separate; see [panel language](/docs/panel-language).

@@ -710,10 +710,17 @@ function ListField({ field, value, reference, translating, filter, path, onChang
                       onChange={(v) => setAt(i, v)}
                     />
                   ) : (
-                    <>
-                      <input className="zs-input" value={asString(entry)} onChange={(e) => setAt(i, e.target.value)} placeholder={locked ? asString(refList?.[i]) : undefined} />
-                      {locked && asString(entry) === "" && asString(refList?.[i]) && <Ref text={asString(refList?.[i])} />}
-                    </>
+                    /* Any item type gets its own control: a relation list shows dropdowns, a number list number inputs ... */
+                    <Control
+                      name="item"
+                      field={item}
+                      value={entry}
+                      reference={locked ? refList?.[i] : undefined}
+                      translating={locked}
+                      filter={filter}
+                      path={[...path, i]}
+                      onChange={(v) => setAt(i, v)}
+                    />
                   )}
                 </SortableItem>
               );

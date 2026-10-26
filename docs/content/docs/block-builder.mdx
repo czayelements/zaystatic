@@ -1,0 +1,49 @@
+---
+title: "The block builder"
+description: "A visual page builder for blocks fields: your components draw the page, a palette adds blocks, a side panel edits the selected one."
+---
+For content made of `blocks`, zaystatic ships a ready-made visual editor. You supply only how each block *looks*; the canvas, the palette and the settings are built in.
+
+```tsx
+import { ZayApp, createBlockBuilder } from "zaystatic/ui";
+import { HeroPreview, FeaturesPreview } from "./block-previews"; // your site's own components
+
+const PageBuilder = createBlockBuilder({
+  field: "sections",                                            // the blocks field it edits
+  previews: { hero: HeroPreview, features: FeaturesPreview },   // block type -> how it looks
+  Frame: SitePageFrame,                                         // optional: fonts, width, background
+});
+
+<ZayApp apiPath="/api/cms" editors={{ page: PageBuilder }} />
+```
+
+Attach it in the schema:
+
+```ts
+defineSingleton({
+  label: "Home page",
+  file: "content/home.json",
+  editors: [{ name: "page", label: "Builder", default: true }],
+  i18n: { fields: ["sections.title", "sections.body"] },
+  fields: {
+    sections: blocks("Sections", {
+      hero: block("Hero", { title: str("Title"), image: image("Image") }, { icon: "H", description: "Big headline" }),
+      features: block("Features", { items: list("Items", str("Item")) }, { icon: "F" }),
+    }),
+  },
+});
+```
+
+## How it works
+
+- **The page.** Every block is drawn by *your* preview component, which receives `block` (its values), `type`, `locale` and `selected`. Types without a preview get a simple generic card. Click a block to select it, drag its handle to reorder, and use the toolbar to move, duplicate or delete it. Previews are pictures: clicks select, links do not fire.
+- **The toolbar on the right.** *Blocks* is a palette of the schema's block types (`block(label, fields, { icon, description })`): drag a card onto the page, where a line shows where it will land, or click it to add after the selected block. *Settings* shows the selected block's fields, with validation, image uploads and the media library, just like the standard form.
+- **Translations.** With translated content the page structure follows the default language. In other language tabs the palette and toolbar are locked, previews show the translated text over the default's, and the settings show only the fields chosen in `i18n.fields`. Structural changes in the default language are mirrored into every translation.
+
+## Make it yours
+
+`createBlockBuilder` is an ordinary editor, so you can wrap it or write a different one from scratch with the same parts. See [custom editors](/docs/custom-editors).
+
+<Callout>
+Not yet in the builder: typing straight into a preview, nested blocks and columns, undo and redo, keyboard shortcuts and phone-width previews. See the [roadmap](/docs/roadmap).
+</Callout>

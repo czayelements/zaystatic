@@ -1,0 +1,93 @@
+---
+title: "Images and media"
+description: "Paste a link or upload images, store them in any S3-compatible bucket or in the repository, and browse them in the media library."
+---
+Use the `image` field type wherever you need a picture:
+
+```ts
+cover: image("Cover"),
+```
+
+In the panel an image field shows a preview and offers three ways to fill it: **paste a link**, **upload** (file picker, drag and drop, or paste an image from the clipboard) and **choose from the media library**.
+
+Without a `media` setting the field is a link input with a preview. To enable uploads, give the config a media adapter.
+
+## Adapters
+
+### S3-compatible storage
+
+Amazon S3, Cloudflare R2, MinIO, Backblaze B2, DigitalOcean Spaces and others work with the built-in adapter. It signs requests itself (AWS Signature V4), so no AWS SDK is installed.
+
+```ts
+import { defineConfig, s3Media } from "zaystatic";
+
+defineConfig({
+  // ...
+  media: {
+    adapter: s3Media({
+      endpoint: "https://<account>.r2.cloudflarestorage.com", // omit for AWS S3
+      region: "auto",
+      bucket: "media",
+      accessKeyId: process.env.S3_KEY!,
+      secretAccessKey: process.env.S3_SECRET!,
+      publicUrl: "https://cdn.example.com", // what ends up in your content
+      prefix: "uploads/",
+    }),
+    maxBytes: 5 * 1024 * 1024,
+    accept: ["image/png", "image/jpeg", "image/webp", "image/gif", "image/avif"],
+  },
+});
+```
+
+Or read the settings from environment variables with `s3MediaFromEnv()`:
+
+| Variable | Meaning |
+| --- | --- |
+| `ZAY_S3_BUCKET`, `ZAY_S3_ACCESS_KEY_ID`, `ZAY_S3_SECRET_ACCESS_KEY` | Required. |
+| `ZAY_S3_ENDPOINT` | Endpoint URL; omit for AWS. |
+| `ZAY_S3_REGION` | Default `auto`. |
+| `ZAY_S3_PUBLIC_URL` | Public base URL (a CDN) written into your content. |
+| `ZAY_S3_PREFIX` | Key prefix, default `uploads/`. |
+| `ZAY_S3_PATH_STYLE` | `false` for virtual-hosted style. |
+
+### The repository
+
+`repoMedia()` commits uploads into your repository (by default `public/uploads`). The image goes live with the next build.
+
+```ts
+media: { adapter: repoMedia({ dir: "public/uploads", urlPrefix: "/uploads" }) },
+```
+
+### Your own storage
+
+Implement one function and return the public URL:
+
+```ts
+const adapter: MediaAdapter = {
+  async upload({ key, contentType, data }, { store }) {
+    // save `data` (a Uint8Array) under `key`
+    return { url: `https://files.example.com/${key}` };
+  },
+  // optional: list(...) and delete(...) enable the media library
+};
+```
+
+## What is checked
+
+Uploads pass through your server, which checks them before they reach the adapter:
+
+- the **size** (default 5 MB; Netlify and Vercel functions limit request bodies to about 6 MB);
+- the **real file type from the bytes**, not the file name or the type the browser claims;
+- **SVG is off by default** because it can carry scripts. If you add `"image/svg+xml"` to `accept`, SVGs containing scripts or event handlers are still rejected.
+
+Files are stored as `<prefix>YYYY/MM/<slug>-<random>.<ext>` and served with a one-year immutable cache header.
+
+## The media library
+
+When the adapter can list files (`s3Media` and `repoMedia` can), the panel gets a **Media** tab to browse, search, reuse and delete images, and a **Library** button in every image field.
+
+<Callout type="warning">
+Deleting a file does not check whether your content still uses it. Pages that do will show a broken image.
+</Callout>
+
+S3 listings consider the newest 1000 objects.

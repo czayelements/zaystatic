@@ -1,0 +1,47 @@
+{
+  "sections": [
+    {
+      "title": "Getting started",
+      "pages": [
+        "introduction",
+        "quick-start",
+        "other-frameworks"
+      ]
+    },
+    {
+      "title": "Content",
+      "pages": [
+        "configuration",
+        "content-model",
+        "field-types",
+        "translating-content",
+        "validation"
+      ]
+    },
+    {
+      "title": "Media and publishing",
+      "pages": [
+        "images-and-media",
+        "authentication",
+        "deploying",
+        "draft-workflow"
+      ]
+    },
+    {
+      "title": "Extending",
+      "pages": [
+        "custom-editors",
+        "block-builder",
+        "panel-language"
+      ]
+    },
+    {
+      "title": "Reference",
+      "pages": [
+        "http-api",
+        "security",
+        "roadmap"
+      ]
+    }
+  ]
+}

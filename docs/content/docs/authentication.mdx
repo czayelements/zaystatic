@@ -1,0 +1,55 @@
+---
+title: "Authentication"
+description: "How sign-in works: local mode for development, GitHub OAuth for production, and which environment variables to set."
+---
+The panel has two run modes.
+
+| Mode | Where | Sign-in | Saves go to |
+| --- | --- | --- | --- |
+| `local` | your machine | none | files on disk |
+| `github` | production | GitHub | commits to your repository |
+
+Without `ZAY_MODE`, the panel runs in `local` mode in development and in `github` mode in production. **If production is missing the GitHub settings, the panel stays closed.** It never falls back to local files.
+
+<Callout type="warning">
+`ZAY_MODE=local` in production gives everyone who can reach the page write access to the files. Use it only on your own machine.
+</Callout>
+
+## Set up GitHub sign-in
+
+<Steps>
+
+### Create an OAuth App
+
+In GitHub, go to Settings, Developer settings, OAuth Apps, New. Set *Homepage URL* to your site and *Authorization callback URL* to:
+
+```text
+https://your-site.com/api/cms/auth/callback
+```
+
+(`/api/cms` is your `apiPath`.) Note the client ID and create a client secret.
+
+### Set the environment variables
+
+| Variable | Value |
+| --- | --- |
+| `ZAY_GITHUB_CLIENT_ID` | the OAuth App's client ID |
+| `ZAY_GITHUB_CLIENT_SECRET` | the client secret |
+| `ZAY_SESSION_SECRET` | a long random string, for example `openssl rand -base64 48` |
+| `ZAY_ALLOWED_USERS` | GitHub logins that may sign in, comma-separated |
+
+### Sign in
+
+Open the panel and choose *Sign in with GitHub*. The account must be on the allow-list and have write access to the repository set in `repo`.
+
+</Steps>
+
+## What happens when someone saves
+
+The signed-in user's own GitHub token makes the commit (scope `repo`), so your history shows who changed what. The token lives in a sealed cookie on the server side of the exchange; the browser never receives it. Each save is one commit; if someone else pushed in between, the save is refused with a clear message instead of overwriting their work.
+
+## Sessions
+
+The session cookie is `HttpOnly`, encrypted with AES-256-GCM using `ZAY_SESSION_SECRET`, and lasts eight hours. Changing the secret signs everyone out.
+
+See [security](/docs/security) for the full list of protections.

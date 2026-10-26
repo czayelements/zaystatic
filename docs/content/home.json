@@ -1,0 +1,42 @@
+{
+  "title": "A content panel that lives in your repository",
+  "subtitle": "Schema-driven forms, per-language content, drag-and-drop blocks and a visual page builder. Your content stays as plain files; every save is a commit.",
+  "features": [
+    {
+      "title": "Git is the backend",
+      "text": "Content stays as JSON and Markdown in your repository. Every save is one commit under the editor's own GitHub account. No database, no hosted service."
+    },
+    {
+      "title": "Schema in code",
+      "text": "One definition drives the panel's forms and the reader that builds your site, so what the panel writes and what the site reads cannot drift."
+    },
+    {
+      "title": "Real translations",
+      "text": "One file per language, language tabs, and the source text shown under every field you translate. You choose which fields."
+    },
+    {
+      "title": "Drag and drop",
+      "text": "Lists and typed blocks sort by dragging. Changes to a list in the default language are mirrored into the translations."
+    },
+    {
+      "title": "Visual page builder",
+      "text": "Draw pages with your own block components, add blocks from a palette, edit the selected block in a side panel."
+    },
+    {
+      "title": "Images and media",
+      "text": "Paste a link or upload to any S3-compatible bucket (S3, R2, MinIO \u2026) or straight into the repo, with a media library to browse them."
+    },
+    {
+      "title": "Validation and drafts",
+      "text": "Rules enforced on the server and shown in the panel. Optionally publish through pull requests with a review page."
+    },
+    {
+      "title": "Framework-agnostic",
+      "text": "The server is a (Request) => Response function; adapters for Next.js and Node. The panel is one React component."
+    },
+    {
+      "title": "Make it yours",
+      "text": "Custom editors and field widgets render your data your way, using the panel's own building blocks."
+    }
+  ]
+}

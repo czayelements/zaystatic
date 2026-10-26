@@ -1,0 +1,34 @@
+---
+title: "Deploying"
+description: "Hosting notes for Netlify, Vercel and similar platforms: environment variables, the Node runtime and request size limits."
+---
+zaystatic needs a Node.js server runtime for its API route (sessions and request signing use `node:crypto`). A fully static export cannot host the panel; the rest of your site can still be static.
+
+## Checklist
+
+1. **Environment variables** from [authentication](/docs/authentication): `ZAY_GITHUB_CLIENT_ID`, `ZAY_GITHUB_CLIENT_SECRET`, `ZAY_SESSION_SECRET`, `ZAY_ALLOWED_USERS`. Add the `ZAY_S3_*` variables if you upload to a bucket.
+2. **The OAuth callback URL** must match your production origin and `apiPath`.
+3. **`repo`** in the config points at the repository your host builds from.
+4. **The API route** uses the Node runtime and is dynamic:
+
+```ts
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+```
+
+5. **Rebuild on push.** A save is a commit; your host's Git integration builds and publishes it as usual.
+
+## Netlify and Vercel
+
+Both run Next.js route handlers as functions. Two things to remember:
+
+- **Request size.** Image uploads pass through the function, and function request bodies are limited to about 6 MB. The default `maxBytes` of 5 MB stays under it.
+- **Previews.** If you use [the draft workflow](/docs/draft-workflow), the platform's deploy previews give you a `previewUrl` for every draft.
+
+## Behind a proxy
+
+If a proxy hides the public origin, set `ZAY_PUBLIC_URL` so the sign-in redirect uses the right address.
+
+## Local mode on a server
+
+Do not set `ZAY_MODE=local` on a public deployment. See [authentication](/docs/authentication).

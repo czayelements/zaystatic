@@ -1,0 +1,48 @@
+---
+title: "Validation"
+description: "Declarative rules on any field, enforced by the server and shown in the panel."
+---
+Add rules to a field with options. The same function checks them on the server and in the panel, so the two always agree.
+
+```ts
+str("Slug", {
+  required: true,
+  minLength: 3,
+  maxLength: 60,
+  pattern: ["^[a-z0-9-]+$", "Lowercase letters, numbers and dashes"],
+}),
+int("Year", { min: 1990, max: 2100 }),
+list("Tags", str("Tag"), { minItems: 1, maxItems: 5 }),
+```
+
+## Rules
+
+| Rule | Applies to | Meaning |
+| --- | --- | --- |
+| `required` | any field | Must be filled in. For lists and blocks: at least one item. |
+| `minLength`, `maxLength` | text, markdown, image, select | Length of the value. |
+| `pattern` | text-like fields | A regular expression, or `[regex, message]` to explain it. |
+| `min`, `max` | numbers | Value range. |
+| `minItems`, `maxItems` | lists, blocks, relations | Number of items. |
+
+Rules work inside objects, lists and blocks too.
+
+## In the panel
+
+The first time someone saves with problems, the panel shows a message under each field, marks the language tabs and the collapsed rows that contain problems, and blocks the save. After that the messages update as the editor types.
+
+## On the server
+
+A save with invalid content is rejected with status 422 and a list of issues per language, so a hand-made request cannot bypass the rules. Nothing is written.
+
+## Translations
+
+[Translations](/docs/translating-content) may be partial, so `required` applies to the default language only. Every other rule applies to whatever is filled in, in any language.
+
+<Callout>
+An entry's `identifier` field is always required, whatever the schema says, because it names the entry.
+</Callout>
+
+## Messages
+
+The messages come from the panel's own translations (see [panel language](/docs/panel-language)). For `pattern` you can give your own message, as in the example above; like other schema texts it may be given per language.

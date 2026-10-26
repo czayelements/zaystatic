@@ -16,8 +16,13 @@ commits through the GitHub API (or writes to disk in development). The server is
 
 ### Repository layout
 
+A pnpm monorepo, like Keystatic: the npm package lives in `packages/zaystatic`, the documentation and promo site in `docs/`.
+
 ```
-src/
+docs/                         Next.js site: promo landing page + documentation. Its pages are edited with zaystatic itself
+                              (open /zaystatic under `pnpm dev:docs`). Content: docs/content/docs/*.mdx, navigation.json, home.json.
+packages/zaystatic/           the npm package (paths below are relative to it)
+  src/
   schema/dsl.mjs, dsl.d.mts   Field helpers (str, text, markdown, image, int, bool, select, date, datetime,
                               relation(s), list, obj, block/blocks), normalize(), translatableFields(),
                               fieldsFromSample(), isEmptyValue(), validateDoc(). PLAIN ESM on purpose:
@@ -44,16 +49,18 @@ src/
                               (field editors, lists/blocks with dnd-kit), parts.tsx, media.tsx, modal.tsx,
                               validation.tsx, context.tsx (router, toasts, guards), api.ts, i18n.ts + locales/,
                               zay.css (all classes `zs-` prefixed, CSS variables `--zs-*`).
-test/                         node:test suites run with tsx (no network). fake-github.ts is an in-process GitHub.
-scripts/                      clean + copy-assets (build helpers).
+  test/                       node:test suites run with tsx (no network). fake-github.ts is an in-process GitHub.
+  scripts/                    clean + copy-assets (build helpers).
 ```
 
 ### Commands
 ```bash
-pnpm install
-pnpm test        # node:test via tsx; must stay green (54 tests at time of writing)
-pnpm typecheck
-pnpm build       # tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prepended to dist/ui.js)
+pnpm install          # from the repo root (workspace)
+pnpm test             # the package's node:test suites (via tsx); must stay green
+pnpm typecheck        # package + docs
+pnpm build            # package: tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prepended to dist/ui.js)
+pnpm dev:docs         # the docs/promo site on http://localhost:3100 (build the package first: pnpm build)
+pnpm build:docs       # build package, then the site
 ```
 
 ### Invariants. Do not break these
@@ -73,8 +80,8 @@ pnpm build       # tsup -> dist/ (+ schema.mjs, styles.css; "use client" is prep
    every bundled language must define all keys, enforced by the i18n test).
 
 ### How the czay.dev project consumes this package
-The package lives at `~/Documents/projects/zaystatic` (own git repo). The czay.dev site (`~/Documents/czaydev`,
-branch `feat/zaystatic-package`) installs it as `"zaystatic": "file:../projects/zaystatic"` (a copy, because Turbopack
+The package lives in the monorepo at `~/Documents/projects/zaystatic/packages/zaystatic`. The czay.dev site (`~/Documents/czaydev`,
+branch `feat/zay-static-package`) installs it as `"zaystatic": "file:../projects/zaystatic/packages/zaystatic"` (a copy, because Turbopack
 cannot resolve a symlink outside the project root). After changing the package run `pnpm zay:sync` in the site (builds the
 package and reinstalls). The site's `zay.config.ts` holds settings, `zay.schema.ts` the content model (fields are
 defined in `scripts/content/schema.mjs` because the site build reads the same definitions).

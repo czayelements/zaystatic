@@ -1,0 +1,43 @@
+---
+title: "Panel language"
+description: "The panel's own interface language: how editors switch it, how you set the default, and how schema labels follow it."
+---
+The panel's own wording (buttons, messages, empty states) is **owned by the package**. It ships a fixed set of languages, currently **English** and **Turkish**, and a project cannot add languages or override strings. That keeps the panel consistent for every editor and every install; new languages arrive through package updates.
+
+## Choosing the language
+
+- `language` in [the configuration](/docs/configuration) is the default (`"en"` if omitted).
+- The sidebar shows a **language picker**, with each language named in itself. The editor's choice is remembered in their browser and wins over the default.
+- With `autoDetectLanguage: true`, the panel starts in the browser's language when the package ships it. A language picked in the panel still wins.
+
+```ts
+defineConfig({
+  language: "tr",            // "en" or "tr"
+  autoDetectLanguage: true,  // optional
+  // ...
+});
+```
+
+## Labels in your schema
+
+The names in your schema (collections and groups, field labels, hints, option labels, block names, validation messages) are *your* content model, not panel wording. Give them as plain text, or as a map per language. The server resolves them to the language the panel is in, so switching language relabels the whole panel.
+
+```ts
+defineCollection({
+  label: { en: "Posts", tr: "Yazılar" },
+  fields: {
+    title: str({ en: "Title", tr: "Başlık" }, { hint: { en: "Shown in lists", tr: "Listelerde görünür" } }),
+  },
+  // ...
+});
+```
+
+Lookup order for a label: the exact language (`pt-BR`), then its base (`pt`), then English, then the first entry. A plain string is used in every language.
+
+## Content translation is separate
+
+Translating your *content* (one file per language) is a different feature; see [translating content](/docs/translating-content).
+
+## Adding a language to the package
+
+Copy `src/ui/locales/en.ts` to `locales/<code>.ts` in the package and translate the values (the type checker flags missing keys), then register it in `src/ui/i18n.ts` and in `src/core/languages.ts`. Tests keep every language in sync with English. Contributions are welcome; see the repository's contributing guide.

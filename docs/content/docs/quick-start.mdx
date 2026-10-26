@@ -1,0 +1,126 @@
+---
+title: "Quick start"
+description: "Add zaystatic to a Next.js app in five steps: install, schema, settings, API route and panel page."
+---
+This guide adds the panel to a Next.js (App Router) project. Other runtimes are covered in [other frameworks](/docs/other-frameworks).
+
+<Steps>
+
+### Install
+
+```bash
+npm install zaystatic
+```
+
+zaystatic needs Node 20 or newer and React 19 (a peer dependency).
+
+### Describe your content
+
+Create `zaystatic.schema.ts` in the project root. It lists which kinds of content exist and what fields they have:
+
+```ts
+import { defineSchema, defineCollection } from "zaystatic";
+import { str, markdown, image, select } from "zaystatic/schema";
+
+export default defineSchema({
+  collections: {
+    posts: defineCollection({
+      label: "Posts",
+      dir: "content/posts",
+      ext: "mdx",
+      identifier: "title",
+      fields: {
+        title: str("Title", { required: true }),
+        cover: image("Cover"),
+        status: select("Status", [
+          { label: "Draft", value: "draft" },
+          { label: "Live", value: "live" },
+        ]),
+        body: markdown("Body"),
+      },
+    }),
+  },
+});
+```
+
+### Add the settings
+
+Create `zaystatic.config.ts`:
+
+```ts
+import { defineConfig, repoMedia } from "zaystatic";
+import schema from "./zaystatic.schema";
+
+export default defineConfig({
+  name: "My site",
+  locales: ["en"],
+  defaultLocale: "en",
+  basePath: "/cms",       // where the panel page lives
+  apiPath: "/api/cms",    // where the API lives
+  repo: { owner: "me", name: "my-site", branch: "main" },
+  media: { adapter: repoMedia() },
+  schema,
+});
+```
+
+### Add the API route
+
+`app/api/cms/[...path]/route.ts`:
+
+```ts
+import { createNextHandlers } from "zaystatic/next";
+import config from "@/zaystatic.config";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
+```
+
+### Add the panel page
+
+The panel has its own root layout, so it does not inherit your site's header or cookie banner.
+
+```tsx
+// app/cms/layout.tsx
+import "zaystatic/styles.css";
+
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body style={{ margin: 0 }}>{children}</body>
+    </html>
+  );
+}
+```
+
+```tsx
+// app/cms/panel.tsx
+"use client";
+import { ZayApp } from "zaystatic/ui";
+
+export const Panel = () => <ZayApp apiPath="/api/cms" />;
+```
+
+```tsx
+// app/cms/[[...path]]/page.tsx
+import { Panel } from "../panel";
+
+export const dynamic = "force-dynamic";
+export default function Page() {
+  return <Panel />;
+}
+```
+
+</Steps>
+
+## Run it
+
+Start your dev server and open `/cms`. In development the panel writes to your local files and asks for no sign-in, so you can try everything right away.
+
+<Callout>
+If you use locale-routing middleware, exclude the panel path from its matcher.
+</Callout>
+
+## Going to production
+
+Production saves commit to GitHub, so set up sign-in first: create a GitHub OAuth App and a few environment variables. [Authentication](/docs/authentication) walks through it, and [deploying](/docs/deploying) covers hosting notes. Until those variables exist the panel stays closed; it never falls back to local files in production.

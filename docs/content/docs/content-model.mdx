@@ -1,0 +1,95 @@
+---
+title: "The content model"
+description: "Collections, singletons and UI-string files: how zaystatic stores content and how the schema describes it."
+---
+The content model says which kinds of content exist and which fields they have. It lives in your project as code, in `zaystatic.schema.ts`.
+
+## Three kinds of content
+
+| Kind | Helper | Stored as | Typical use |
+| --- | --- | --- | --- |
+| Collection | `defineCollection` | one file per entry, in a folder | posts, products, team members |
+| Singleton | `defineSingleton` | one file | site settings, a home page, navigation |
+| File set | `defineFileSet` | the same JSON shape in every language | UI strings such as `messages/en/nav.json` |
+
+```ts
+import { defineSchema, defineCollection, defineSingleton } from "zaystatic";
+import { str, text, markdown, list, obj } from "zaystatic/schema";
+
+export default defineSchema({
+  groups: [{ id: "content", label: "Content" }],
+  collections: {
+    posts: defineCollection({
+      label: "Posts",
+      group: "content",
+      dir: "content/posts",
+      ext: "mdx",
+      identifier: "title",
+      summary: "{{title}} · {{status}}",
+      sort: { field: "publishedAt", order: "desc" },
+      fields: { title: str("Title"), body: markdown("Body") },
+    }),
+  },
+  singletons: {
+    settings: defineSingleton({
+      label: "Site settings",
+      group: "content",
+      file: "content/settings.json",
+      fields: {
+        tagline: text("Tagline"),
+        links: list("Links", obj("", { label: str("Label"), href: str("Address") })),
+      },
+    }),
+  },
+});
+```
+
+## Collections
+
+| Option | Meaning |
+| --- | --- |
+| `label`, `group` | How the collection appears in the sidebar. |
+| `dir` | Folder relative to the repository root. |
+| `ext` | `"json"` (default) or `"mdx"`: YAML frontmatter plus the body. |
+| `identifier` | The field shown as the title in lists. It is always required. |
+| `summary` | Second line of a list row, for example `"{{title}} · {{status}}"`. |
+| `sort` | `{ field, order }`. Default: title A to Z. |
+| `i18n` | Translate this collection, see [translating content](/docs/translating-content). |
+| `editors` | Custom editors, see [custom editors](/docs/custom-editors). |
+| `fields` | The fields, see [field types](/docs/field-types). |
+
+An entry's file name is its address: `content/posts/hello-world.mdx`. Addresses may contain lowercase letters, numbers and dashes.
+
+For MDX entries the single `markdown` field becomes the body of the file; all other fields go into the frontmatter.
+
+## Singletons
+
+A singleton is one file, edited as one form. It accepts `i18n` and `editors` like a collection. When `i18n` is on, the file becomes one per language: `home.json` turns into `home.en.json`, `home.de.json`.
+
+## File sets
+
+File sets are for files that have the same shape in every language, such as UI strings. They need no schema: the form is derived from the default language's file.
+
+```ts
+fileSets: {
+  messages: defineFileSet({
+    label: "Interface texts",
+    files: [{ name: "base", label: "General", path: "messages/{locale}.json" }],
+    scan: { dir: "messages/{locale}", path: "messages/{locale}/{name}.json" },
+  }),
+},
+```
+
+`{locale}` and `{name}` are replaced. `scan` treats every `.json` file in the folder as a file of the set.
+
+## Reading the content in your site
+
+The files are ordinary JSON and Markdown, so read them any way you like. When you want the same defaults the panel uses, import the helpers; they are plain ESM, so a Node build script can use them too:
+
+```ts
+import { normalize, obj } from "zaystatic/schema";
+
+const post = normalize(obj("", schema.collections.posts.fields), rawFileContents);
+```
+
+`normalize` fills missing fields with their defaults, so your code always sees the full shape even if the file only contains what someone filled in.

@@ -1,0 +1,96 @@
+---
+title: "Field types"
+description: "Every field type, its editor in the panel and how it is stored: text, markdown, images, selects, relations, lists, objects and blocks."
+---
+Every field has a type, and every type has its own editor in the panel. Import the helpers from `zaystatic/schema`.
+
+| Type | Helper | Editor | Stored as |
+| --- | --- | --- | --- |
+| Text | `str` | single-line input | string |
+| Long text | `text` | auto-growing textarea | string |
+| Markdown | `markdown` | monospace editor (raw, lossless) | string |
+| Image | `image` | link input, preview, upload and library | string (URL or path) |
+| Number | `int` | number input | number or null |
+| Boolean | `bool` | switch | boolean |
+| Select | `select` | segmented control (up to 4 options) or dropdown | string |
+| Date, datetime | `date`, `datetime` | native pickers | `YYYY-MM-DD`, `YYYY-MM-DDTHH:mm` |
+| Relation | `relation`, `relations` | dropdown or chips, fed by another collection | slug or slugs |
+| Object | `obj` | group, or one row with `{ inline: true }` | object |
+| List | `list` | drag-and-drop, collapsible, duplicate, delete | array |
+| Blocks | `blocks` and `block` | drag-and-drop list of typed items | array of `{ _type, ... }` |
+
+Options common to all types: `hint`, `default`, `required` (and the other [validation](/docs/validation) rules), `widget` (see [custom editors](/docs/custom-editors)), and the per-field translation shorthand `i18n: "translate"`.
+
+## Text, markdown and images
+
+```ts
+title: str("Title", { required: true, maxLength: 80 }),
+excerpt: text("Excerpt", { hint: "Shown in lists." }),
+body: markdown("Body"),
+cover: image("Cover"),
+```
+
+Markdown is edited as raw text, which keeps the round trip lossless. Image fields take a pasted link or an upload; see [images and media](/docs/images-and-media).
+
+## Numbers, booleans, selects and dates
+
+```ts
+order: int("Order", { min: 0, default: 0 }),
+published: bool("Published", true),
+status: select("Status", [
+  { label: "Draft", value: "draft" },
+  { label: "Live", value: "live" },
+], "draft"),
+publishedAt: datetime("Published at"),
+```
+
+## Relations
+
+A relation stores the address of an entry in another collection and shows a dropdown fed by that collection:
+
+```ts
+author: relation("Author", "authors"),
+related: relations("Related posts", "posts"),
+```
+
+## Objects and lists
+
+```ts
+seo: obj("SEO", { title: str("Title"), description: text("Description") }),
+links: list("Links", obj("", { label: str("Label"), href: str("Address") }), {
+  summary: "{{fields.label}}",
+  minItems: 1,
+  maxItems: 8,
+}),
+tags: list("Tags", str("Tag")),
+```
+
+`summary` is the title of a collapsed row. Rows can be dragged, duplicated and deleted; lists of objects can be expanded and collapsed.
+
+## Blocks
+
+Blocks are a list of items of different types. Each item remembers its type in `_type`:
+
+```ts
+import { blocks, block } from "zaystatic/schema";
+
+sections: blocks("Sections", {
+  hero: block("Hero", { title: str("Title"), image: image("Image") }, { icon: "H", description: "Big headline" }),
+  text: block("Text", { body: markdown("Body") }),
+}),
+```
+
+```json
+{
+  "sections": [
+    { "_type": "hero", "title": "Welcome", "image": "/img/hero.jpg" },
+    { "_type": "text", "body": "Hello." }
+  ]
+}
+```
+
+In the standard form, a blocks field offers one add button per block type. For a richer experience see [the block builder](/docs/block-builder).
+
+## Per-language labels
+
+Texts in the schema (`label`, `hint`, option labels, block names) may be given per language. The server resolves them to the language the panel is in. See [panel language](/docs/panel-language).

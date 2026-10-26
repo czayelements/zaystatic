@@ -4,10 +4,15 @@ Thanks for helping. zaystatic is small on purpose: Git as the backend, schema in
 
 ## Setup
 
+This is a pnpm monorepo: `packages/zaystatic` is the npm package, `docs/` is the documentation and promo site.
+
 ```bash
 pnpm install
 pnpm test && pnpm typecheck && pnpm build
+pnpm dev:docs        # the site on http://localhost:3100; its pages are edited at /zaystatic
 ```
+
+When you change behaviour, update the matching page under `docs/content/docs/` too.
 
 ## Guidelines
 

@@ -1,0 +1,76 @@
+---
+title: "Custom editors and widgets"
+description: "Render your data your own way: whole-entry editors and per-field widgets written as React components."
+---
+The standard form works for any schema, but your data may deserve a better view: a diagram, a page layout, a board, a map. zaystatic lets **your site render the data however it wants** while the panel keeps saving, validation, drafts, language tabs and image uploads. There are two extension points, both plain React components registered by name.
+
+```tsx
+"use client";
+import { ZayApp } from "zaystatic/ui";
+import { RoadmapEditor } from "./roadmap-editor";
+import { ColorWidget } from "./color-widget";
+
+export const Panel = () => (
+  <ZayApp apiPath="/api/cms" editors={{ roadmap: RoadmapEditor }} widgets={{ color: ColorWidget }} />
+);
+```
+
+## Editors
+
+An editor replaces the whole form with your own view of an entry. Attach one or several to any collection or singleton; the panel adds a switcher (Form, plus your editors):
+
+```ts
+defineCollection({
+  // ...
+  editors: [
+    "roadmap",                                                        // shorthand: opens first
+    { name: "board", label: { en: "Board", de: "Tafel" }, default: false, languages: "tabs" },
+  ],
+});
+```
+
+An editor receives `EditorProps`:
+
+| Prop | Meaning |
+| --- | --- |
+| `value`, `onChange(next)` | The **active language's** document and a setter. All you need for untranslated content. |
+| `docs`, `setDocs(next)` | Every language's document (for `languages: "self"`). |
+| `kind`, `name`, `slug`, `isNew` | What is being edited. `slug` is undefined for singletons and unsaved entries. |
+| `fields`, `i18nFields`, `activeFields` | The schema: all fields, the translated subset, and what applies to the active language. |
+| `translated`, `activeLocale`, `setActiveLocale`, `locales`, `defaultLocale`, `localeNames` | Language state. |
+| `errors`, `showErrors` | Validation messages by field path (for example `"items.0.title"`) for the active language. |
+
+With translated content the panel shows the language tabs above your editor and passes the active language's document (`languages: "tabs"`, the default). Use `languages: "self"` to receive all documents and manage languages yourself.
+
+### Building blocks
+
+Build your editor from the panel's own parts, all exported from `zaystatic/ui`:
+
+- `PanelForm`: the schema-driven form (lists, blocks, drag and drop, validation) for any `fields`. Render *part* of a document your own way and hand the rest to the standard form.
+- `ImageInput` and `MediaLibrary`: the upload, link and library picker.
+- `useZay()`: the API client, the panel's strings, `toast`, the current language.
+- `LocaleTabs`, `Modal`, `Link`.
+
+Because editors run in your app, they can import your site's own components, so what editors see is exactly what visitors see. Keep heavy ones lazy (`next/dynamic`) so the rest of the panel stays light.
+
+## Widgets
+
+A widget replaces the control of a **single field**. Name it on the field and register it in `widgets`:
+
+```ts
+colour: str("Colour", { widget: "color" })
+```
+
+```tsx
+import type { WidgetProps } from "zaystatic/ui";
+
+export function ColorWidget({ value, onChange }: WidgetProps) {
+  return <input type="color" value={String(value || "#000000")} onChange={(e) => onChange(e.target.value)} />;
+}
+```
+
+A widget receives `field`, `value`, `onChange`, `path`, `errors` and, in a translation tab, `reference` and `translating`. It works on any field type, including lists and objects, and inside lists and blocks.
+
+## Ready-made: the block builder
+
+For content made of blocks there is a ready-made visual editor. See [the block builder](/docs/block-builder).

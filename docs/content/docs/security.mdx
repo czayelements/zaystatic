@@ -1,0 +1,24 @@
+---
+title: "Security"
+description: "What zaystatic protects against and what it leaves to you."
+---
+## Protections
+
+- **Writes are guarded.** Every request that changes something needs the custom header `x-zay-request: 1` and a same-origin `Origin`, so other websites cannot drive the panel from a visitor's browser.
+- **Sessions are sealed.** The session cookie is `HttpOnly` and encrypted with AES-256-GCM. The GitHub token never reaches the browser.
+- **Closed by default.** In production, without the `ZAY_*` settings the panel refuses every request. It never falls back to local files.
+- **Allow-list.** Only the GitHub logins in `ZAY_ALLOWED_USERS` can sign in, and they need push access to the repository.
+- **Paths are not user input.** File paths come from your schema; addresses must match `^[a-z0-9]+(-[a-z0-9]+)*$`. Names such as `constructor` are not looked up on objects.
+- **Commits never force-push.** A concurrent push is reported and nothing is overwritten. The local store cannot leave its root folder.
+- **Uploads are checked by their bytes.** Type and size are verified on the server; SVG is opt-in and screened for scripts.
+- **Validation runs on the server.** Rules cannot be bypassed from the browser.
+
+## What you handle
+
+- **Rate limiting and audit logs.** zaystatic has neither of its own. Git history is the audit trail; rate limit at your host or proxy.
+- **Who is on the allow-list.** Anyone on it can change any content the schema describes and publish it.
+- **Your site's rendering.** If you render content as HTML or MDX, treat it as you would any editor-provided content.
+
+## Reporting a problem
+
+Please report vulnerabilities privately, using the repository's private vulnerability reporting, rather than in a public issue.

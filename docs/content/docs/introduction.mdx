@@ -1,0 +1,44 @@
+---
+title: Introduction
+description: "zaystatic is a Git-based content panel: schema-driven forms on top of plain files in your repository."
+---
+zaystatic gives editors a polished panel for the content of your site, without a database or a hosted service. Your content stays as plain **JSON and Markdown files in your repository**. The panel edits them and commits straight to your branch; your host rebuilds on push as usual.
+
+<Callout type="tip" title="Stop using it any time">
+Nothing is locked in. If you remove zaystatic tomorrow, your content is still ordinary files you can read and edit by hand.
+</Callout>
+
+## What you get
+
+- **Schema in code.** One definition drives the panel's forms *and* the reader that builds your site, so what the panel writes and what the site reads cannot drift apart. See [the content model](/docs/content-model).
+- **Real translations.** One file per language, language tabs, and the source text under every field you translate. You choose the fields. See [translating content](/docs/translating-content).
+- **Drag and drop** for every list, and typed **blocks** for page-builder style content. See [field types](/docs/field-types).
+- **A visual page builder.** Your own components draw the blocks; editors add them from a palette. See [the block builder](/docs/block-builder).
+- **Images.** Paste a link or upload to any S3-compatible bucket or into the repo, with a media library. See [images and media](/docs/images-and-media).
+- **Validation.** Rules enforced on the server and shown in the panel. See [validation](/docs/validation).
+- **Git as the backend.** Each save is one commit made with the editor's own GitHub identity, fast-forward only. Optionally publish through pull requests. See [authentication](/docs/authentication) and [the draft workflow](/docs/draft-workflow).
+- **Extensible.** Custom editors and field widgets render your data your way. See [custom editors](/docs/custom-editors).
+
+## How it fits together
+
+```text
+editor ──► panel (React) ──► API (Request → Response) ──► store ──► your repository
+                                 │                          ├─ local   files on disk (development)
+                                 └─ media adapter           └─ github  Git Data API, one commit per save
+                                      ├─ S3-compatible bucket
+                                      └─ repository (public/uploads)
+```
+
+The server side is a plain `(Request) => Response` function, so it runs anywhere that speaks the Web `Request` and `Response` types. There are adapters for [Next.js and Node](/docs/other-frameworks). The panel itself is a React component.
+
+## Is it for me?
+
+zaystatic fits sites whose content lives next to the code: documentation, marketing sites, blogs, portfolios, small product sites. It is not a hosted headless CMS with its own API and database; if you need real-time collaboration, fine-grained roles or a content API for many clients, look at a database-backed CMS.
+
+<Callout type="warning" title="0.x software">
+The on-disk content format is meant to stay stable, but the public API may still change before 1.0. See the [roadmap](/docs/roadmap) for what is verified and what is not.
+</Callout>
+
+## Next steps
+
+Start with the [quick start](/docs/quick-start), then read about [configuration](/docs/configuration) and [the content model](/docs/content-model).

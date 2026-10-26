@@ -1,0 +1,49 @@
+---
+title: "The draft workflow"
+description: "Publish through pull requests: saves go to a draft branch, and a Review tab lists drafts to publish or discard."
+---
+By default a save is a commit to your configured branch. Turn on the pull-request workflow and every save goes to a **draft branch** instead and opens a **pull request**. A **Review** tab lists the drafts so someone can publish (merge) or discard them.
+
+```ts
+defineConfig({
+  // ...
+  workflow: {
+    mode: "pull-request",
+    previewUrl: "https://deploy-preview-{pr}--my-site.netlify.app", // optional
+    mergeMethod: "squash", // or "merge" or "rebase"
+    branchPrefix: "zay/",
+  },
+});
+```
+
+| Option | Meaning |
+| --- | --- |
+| `mode` | `"direct"` (default) or `"pull-request"`. |
+| `previewUrl` | A link to a rendered preview of the draft. `{pr}` and `{branch}` are replaced. |
+| `mergeMethod` | How publishing merges the pull request. Default `squash`. |
+| `branchPrefix` | Prefix of the draft branches. Default `zay/`. |
+
+The workflow needs GitHub mode; local mode always writes directly.
+
+## One branch per editing unit
+
+| Editing unit | Branch |
+| --- | --- |
+| a collection entry | `zay/c/<collection>/<slug>` |
+| a singleton | `zay/s/<singleton>` |
+| a file of a file set | `zay/f/<set>/<file>` |
+
+Unrelated edits never block each other. Saving again adds a commit to the same branch and the same pull request.
+
+## In the panel
+
+- While a draft exists, the entry shows **the draft**, with a *Draft #12* chip that links to the pull request and, if configured, a *Preview* link.
+- **Publish** merges the pull request (your host then rebuilds); **Discard** closes it and deletes the branch.
+- The **Review** tab lists every draft with its author and age, and a badge in the sidebar counts them.
+- Collection lists mark entries that have a draft; entries that exist only as a draft appear too.
+
+Only draft branches the panel created can be published or discarded.
+
+<Callout type="warning" title="Good to know">
+Media uploads with the repository adapter commit directly to the base branch, even in this workflow. If the base branch moved in a way that conflicts with a draft, publishing is refused with a clear message and the draft survives so you can resolve it on GitHub.
+</Callout>

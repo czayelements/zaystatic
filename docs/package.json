@@ -1,0 +1,30 @@
+{
+  "name": "zaystatic-docs",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Documentation site for zaystatic. Its pages are edited with zaystatic itself.",
+  "scripts": {
+    "dev": "next dev --port 3100",
+    "build": "next build",
+    "start": "next start --port 3100",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@shikijs/rehype": "^3.0.0",
+    "github-slugger": "^2.0.0",
+    "gray-matter": "^4.0.3",
+    "next": "16.3.8",
+    "next-mdx-remote": "^5.0.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
+    "zaystatic": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

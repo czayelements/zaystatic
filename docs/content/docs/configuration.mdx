@@ -1,0 +1,57 @@
+---
+title: "Configuration"
+description: "Every setting of zaystatic.config.ts: name, locales, paths, repository, media, workflow and the panel language."
+---
+Settings live in `zaystatic.config.ts`; the content model lives in [`zaystatic.schema.ts`](/docs/content-model). Keeping them apart is a convention: pass the schema to the settings with `schema`.
+
+```ts
+import { defineConfig, repoMedia } from "zaystatic";
+import schema from "./zaystatic.schema";
+
+export default defineConfig({
+  name: "My site",
+  locales: ["en", "de"],
+  defaultLocale: "en",
+  basePath: "/cms",
+  apiPath: "/api/cms",
+  repo: { owner: "me", name: "my-site", branch: "main" },
+  media: { adapter: repoMedia() },
+  language: "en",
+  schema,
+});
+```
+
+A single-file setup works too: pass `collections`, `singletons`, `fileSets` and `groups` straight to `defineConfig`. Entries given there win over the same names in `schema`.
+
+## Reference
+
+| Option | Meaning |
+| --- | --- |
+| `name` | Title of the panel. |
+| `locales`, `defaultLocale` | Content languages. The default language's files carry every field. See [translating content](/docs/translating-content). |
+| `localeNames` | Display names for the content languages, for example `{ en: "English", de: "Deutsch" }`. |
+| `basePath` | Path of the panel page, for example `/cms`. |
+| `apiPath` | Path of the API, for example `/api/cms`. |
+| `repo` | `{ owner, name, branch, apiUrl? }`. Production saves are committed here. `apiUrl` is for GitHub Enterprise. |
+| `schema` | The content model, see [the content model](/docs/content-model). |
+| `groups` | Sidebar groups. |
+| `media` | Image uploads: `{ adapter, maxBytes?, accept? }`. See [images and media](/docs/images-and-media). |
+| `workflow` | `"direct"` (default) or `{ mode: "pull-request", ... }`. See [the draft workflow](/docs/draft-workflow). |
+| `language` | Default language of the panel's own interface. See [panel language](/docs/panel-language). |
+| `autoDetectLanguage` | Start in the browser's language when the panel has it. Default false. |
+| `root` | Directory used by local mode. Default: the current working directory. |
+
+## Environment variables
+
+Secrets and the run mode come from the environment, not from the config file.
+
+| Variable | Meaning |
+| --- | --- |
+| `ZAY_MODE` | `local` (disk, no sign-in, for your own machine) or `github`. Unset: local in development, github in production. |
+| `ZAY_GITHUB_CLIENT_ID`, `ZAY_GITHUB_CLIENT_SECRET` | Your GitHub OAuth App. |
+| `ZAY_SESSION_SECRET` | A long random string that seals the session cookie. |
+| `ZAY_ALLOWED_USERS` | Comma-separated GitHub logins that may sign in. |
+| `ZAY_PUBLIC_URL` | Optional: the public origin when a proxy hides it. |
+| `ZAY_S3_*` | Optional: image storage, see [images and media](/docs/images-and-media). |
+
+See [authentication](/docs/authentication) for how these fit together.

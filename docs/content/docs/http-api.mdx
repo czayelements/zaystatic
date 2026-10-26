@@ -1,0 +1,53 @@
+---
+title: "HTTP API"
+description: "The endpoints behind the panel: sessions, schema, collections, singletons, file sets, media and drafts."
+---
+The panel talks to a small JSON API. All paths are relative to your `apiPath` (for example `/api/cms`). Every request that changes something must send the header `x-zay-request: 1` and come from the same origin.
+
+## Session and schema
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /session` | Mode, signed-in user, repository, media limits, workflow, default language. |
+| `GET /schema?lang=en` | The resolved content model, with labels in the given language. |
+
+## Content
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /collections/:name` | List entries. |
+| `GET /collections/:name/:slug` | Read an entry (one document per language). |
+| `POST /collections/:name/:slug` | Create: body `{ docs }`. |
+| `PUT /collections/:name/:slug` | Update: body `{ docs }`. |
+| `DELETE /collections/:name/:slug` | Delete all language files of an entry. |
+| `GET /singletons/:name`, `PUT /singletons/:name` | Read, or write `{ docs }`. |
+| `GET /filesets/:name[/:file]`, `PUT /filesets/:name/:file` | List files, read a file, write `{ docs }`. |
+
+`docs` maps a language to that language's document. Untranslated content has just the default language.
+
+Writes that change nothing create no commit. An invalid save returns 422 with `issues`, a list of `{ locale, path, code }`.
+
+## Media
+
+| Method and path | Purpose |
+| --- | --- |
+| `POST /media` | Multipart upload with a `file` field. Returns `{ url }`. |
+| `GET /media?cursor=` | List uploads, newest first (when the adapter supports it). |
+| `DELETE /media?key=` | Delete an upload. |
+
+## Drafts
+
+Available when the [draft workflow](/docs/draft-workflow) is on.
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /drafts` | Open drafts created by the panel. |
+| `POST /drafts/:number/publish` | Merge a draft. |
+| `DELETE /drafts/:number` | Discard a draft. |
+
+## Sign-in
+
+| Method and path | Purpose |
+| --- | --- |
+| `GET /auth/login`, `GET /auth/callback` | The GitHub OAuth round trip. |
+| `POST /auth/logout` | End the session. |
