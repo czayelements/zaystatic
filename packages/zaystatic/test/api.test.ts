@@ -85,3 +85,19 @@ test("sign-in redirect uses the request's origin; a blank ZAY_PUBLIC_URL (empty 
     }
   }
 });
+
+test("ZAY_BRANCH points the panel at another branch without touching the config", async () => {
+  const before = process.env.ZAY_BRANCH;
+  try {
+    const h = createHandler({ ...config(await tmp()), repo: { owner: "o", name: "r", branch: "main" } });
+    const branch = async () => (await (await h(new Request("http://localhost/api/zay/session"))).json()).branch;
+    assert.equal(await branch(), "main");
+    process.env.ZAY_BRANCH = "feat/test";
+    assert.equal(await branch(), "feat/test");
+    process.env.ZAY_BRANCH = "  ";
+    assert.equal(await branch(), "main"); // a blank line in .env means "not set"
+  } finally {
+    if (before === undefined) delete process.env.ZAY_BRANCH;
+    else process.env.ZAY_BRANCH = before;
+  }
+});

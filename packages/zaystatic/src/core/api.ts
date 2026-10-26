@@ -53,6 +53,9 @@ export function createHandler(input: ZayConfig) {
   const config = resolveConfig(input);
   const api = config.apiPath.replace(/\/$/, "");
 
+  /** The branch content is read from and committed to: ZAY_BRANCH (to try the panel on a test branch), else the config, else main. */
+  const baseBranch = () => process.env.ZAY_BRANCH?.trim() || config.repo?.branch || "main";
+
   return async function handle(request: Request): Promise<Response> {
     try {
       return await route(request);
@@ -125,7 +128,7 @@ export function createHandler(input: ZayConfig) {
         mode,
         user: mode === "local" ? { login: "local" } : session && { login: session.login, name: session.name, avatar: session.avatar },
         repo: config.repo ? `${config.repo.owner}/${config.repo.name}` : null,
-        branch: config.repo?.branch ?? "main",
+        branch: baseBranch(),
         name: config.name ?? "zaystatic",
         /* The package decides which languages exist; the project only picks the default among them. */
         language: isPanelLanguage(config.language) ? config.language : "en",
@@ -156,7 +159,7 @@ export function createHandler(input: ZayConfig) {
       if (from && from !== url.origin && from !== origin) throw new HttpError(403, "Invalid origin");
     }
 
-    const repo = config.repo && { ...config.repo, branch: config.repo.branch ?? "main" };
+    const repo = config.repo && { ...config.repo, branch: baseBranch() };
     const store: Store = mode === "local" ? fsStore(config.root ?? process.cwd()) : githubStore(session!.token, repo!, repo!.apiUrl);
     const ctx = { config, store };
 

@@ -355,6 +355,7 @@ platform's request-body limit applies (about 6 MB on Netlify and Vercel function
 | `ZAY_SESSION_SECRET` | long random string; seals the session cookie |
 | `ZAY_ALLOWED_USERS` | comma-separated GitHub logins allowed in (they also need push access to the repo) |
 | `ZAY_PUBLIC_URL` | optional; the public origin when a proxy hides it |
+| `ZAY_BRANCH` | optional; read from and commit to this branch instead of `repo.branch` (try the panel on a test branch) |
 
 The signed-in user's own token (scope `repo`) makes the commits, so history shows who changed
 what. If the variables are missing in production the panel stays closed: it never falls back to
