@@ -76,7 +76,7 @@ export function relation(label: Label, collection: string, o?: Opts): Field;
 export function relations(label: Label, collection: string, o?: Opts): Field;
 export function list(label: Label, item: Field, o?: Opts): Field;
 export function obj(label: Label, fields: Fields, o?: Opts): Field;
-export function block(label: Label, fields: Fields, o?: Partial<BlockType>): BlockType;
+export function block(label: Label, fields: Fields, o?: Partial<Omit<BlockType, "hint" | "description" | "label">> & { hint?: Label; description?: Label }): BlockType;
 export function blocks(label: Label, types: Record<string, BlockType>, o?: Opts): Field;
 export function strList(label: Label, itemLabel?: string, o?: Opts): Field;
 
