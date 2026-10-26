@@ -189,7 +189,7 @@ Ordered by value. Each item says where to start and what "done" means.
 - Pick a licence and add `LICENSE`; fill `package.json` (author, repository, bugs, homepage, `files`, `sideEffects`).
 - Set up CI (typecheck, test, build) and a security contact; enable GitHub private vulnerability reporting.
 - `npm publish --provenance`; tag 0.1.0; write the first real CHANGELOG entry.
-- Then switch the czay.dev site from `file:` to the published version and merge `feat/zaystatic-package`.
+- Then switch the czay.dev site from `file:` to the published version and merge `feat/zay-static-package`.
 
 ---
 
