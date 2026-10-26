@@ -307,7 +307,7 @@ Lookup order for a label: exact language (`pt-BR`), then its base (`pt`), then E
 used in every language.
 
 Content translation (one file per language for your *content*) is a separate feature, see below. To add a panel language to
-the package, see [ROADMAP.md](../../ROADMAP.md#panel-languages).
+the package, see [ROADMAP.md](https://github.com/czayelements/zaystatic/blob/main/ROADMAP.md#panel-languages).
 
 ## Localisation
 
@@ -486,7 +486,7 @@ Custom editors are loaded by your code, so keep heavy ones lazy (`next/dynamic`)
 - Uploads are checked by magic bytes; SVG is opt-in and screened for scripts.
 - No rate limiting or audit log of its own: rely on Git history and your host.
 
-Please report vulnerabilities privately (see [SECURITY.md](../../SECURITY.md)).
+Please report vulnerabilities privately (see [SECURITY.md](https://github.com/czayelements/zaystatic/blob/main/SECURITY.md)).
 
 ## HTTP API
 
@@ -519,7 +519,7 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 
 ## Limitations
 
-See [ROADMAP.md](../../ROADMAP.md) for what is planned.
+See [ROADMAP.md](https://github.com/czayelements/zaystatic/blob/main/ROADMAP.md) for what is planned.
 
 - The panel UI is React-only (the server is not).
 - Uploads go through your server (platform body limits apply); there is no media library to browse earlier uploads.
@@ -539,8 +539,8 @@ pnpm dev         # rebuild on change
 
 The tests cover the content engine, the HTTP handler (CSRF, modes, errors), session sealing, the
 GitHub store against an in-process fake GitHub, the S3 signer (checked against AWS's published test
-vector), uploads, and the Node adapter. See [CONTRIBUTING.md](../../CONTRIBUTING.md).
+vector), uploads, and the Node adapter. See [CONTRIBUTING.md](https://github.com/czayelements/zaystatic/blob/main/CONTRIBUTING.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/czayelements/zaystatic/blob/main/LICENSE)
