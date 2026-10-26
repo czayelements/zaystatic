@@ -19,7 +19,8 @@ export const oauthEnv = (env: Env = process.env) => ({
     .split(",")
     .map((u) => u.trim().toLowerCase())
     .filter(Boolean),
-  publicUrl: env.ZAY_PUBLIC_URL?.replace(/\/$/, ""),
+  /* An empty value (a blank line in .env) means "not set", so the request's own origin is used. */
+  publicUrl: env.ZAY_PUBLIC_URL?.trim().replace(/\/$/, "") || undefined,
 });
 
 /**

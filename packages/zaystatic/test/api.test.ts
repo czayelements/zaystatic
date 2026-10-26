@@ -64,3 +64,24 @@ test("session cookie: sealed, tamper-proof, expiring", () => {
   assert.equal(unseal(seal({ ...s, exp: Date.now() - 1 }, "secret"), "secret"), null);
   assert.equal(unseal(undefined, "secret"), null);
 });
+
+test("sign-in redirect uses the request's origin; a blank ZAY_PUBLIC_URL (empty .env line) does not break it", async () => {
+  const keys = ["ZAY_MODE", "ZAY_GITHUB_CLIENT_ID", "ZAY_GITHUB_CLIENT_SECRET", "ZAY_SESSION_SECRET", "ZAY_ALLOWED_USERS", "ZAY_PUBLIC_URL"];
+  const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
+  Object.assign(process.env, { ZAY_MODE: "github", ZAY_GITHUB_CLIENT_ID: "abc", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: "k", ZAY_ALLOWED_USERS: "me", ZAY_PUBLIC_URL: "" });
+  try {
+    const h = createHandler({ ...config(await tmp()), repo: { owner: "o", name: "r" } });
+    const res = await h(new Request("http://localhost:3001/api/zay/auth/login"));
+    assert.equal(res.status, 302);
+    const target = new URL(res.headers.get("location")!);
+    assert.equal(target.searchParams.get("redirect_uri"), "http://localhost:3001/api/zay/auth/callback");
+    process.env.ZAY_PUBLIC_URL = "https://czay.dev/";
+    const behind = await h(new Request("http://127.0.0.1:3000/api/zay/auth/login"));
+    assert.equal(new URL(behind.headers.get("location")!).searchParams.get("redirect_uri"), "https://czay.dev/api/zay/auth/callback");
+  } finally {
+    for (const k of keys) {
+      if (saved[k] === undefined) delete process.env[k];
+      else process.env[k] = saved[k];
+    }
+  }
+});
