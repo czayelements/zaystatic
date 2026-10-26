@@ -1,9 +1,12 @@
-import type { Fields } from "../schema/dsl.mjs";
+import type { Field, Fields } from "../schema/dsl.mjs";
+import type { ResolvedEditor } from "../core/i18n";
 import type { Collection, Singleton } from "../core/types";
 
 /** The server resolves every label to the panel's language before sending the schema. */
 type Resolved<T> = Omit<T, "label" | "i18n"> & {
   label: string;
+  /** Custom editors offered next to the standard form. */
+  editors: ResolvedEditor[];
   /** Is the content translated (one file per language)? */
   i18n: boolean;
   /** The fields the non-default language tabs show, when translation is on. */
@@ -59,16 +62,61 @@ export type EntrySummary = {
 
 export type Docs = Record<string, Record<string, unknown>>;
 
-/** Custom editor contract: a site-specific editor shown instead of / next to the form. */
+/**
+ * Contract of a custom editor: a React component of your site, registered by name in
+ * `<ZayApp editors={...} />` and attached to a collection or singleton with `editors: [...]`.
+ * It shows the same document the standard form edits, in whatever shape suits your data.
+ *
+ * Reading and writing: `value` is the active language's document and `onChange` replaces it. For
+ * translated content with `languages: "self"` use `docs` / `setDocs` (every language) instead.
+ * Saving, validation, drafts and the language tabs stay with the panel. Build on the panel's own
+ * parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) exported from `zay-static/ui`.
+ */
 export type EditorProps = {
-  slug: string;
+  kind: "collection" | "singleton";
+  /** The collection / singleton key. */
+  name: string;
+  /** Entry address; undefined for singletons and for an entry that is not saved yet. */
+  slug?: string;
+  isNew: boolean;
+  /** Every field of the default language. */
   fields: Fields;
+  /** The fields translated into the other languages (when translation is on). */
+  i18nFields?: Fields;
+  /** The fields that apply to the active language. */
+  activeFields: Fields;
   locales: string[];
   defaultLocale: string;
   localeNames: Record<string, string>;
-  /** The default language's document (the only document in plain collections). */
+  /** Is the content translated? */
+  translated: boolean;
+  activeLocale: string;
+  setActiveLocale: (locale: string) => void;
+  /** All documents, one per language (one entry for untranslated content). */
+  docs: Docs;
+  setDocs: (next: Docs) => void;
+  /** The active language's document. */
   value: Record<string, unknown>;
   onChange: (next: Record<string, unknown>) => void;
+  /** Validation messages by field path (`"items.0.title"`) for the active language, and whether to show them yet. */
+  errors: Record<string, string[]>;
+  showErrors: boolean;
 };
 
 export type EditorMap = Record<string, React.ComponentType<EditorProps>>;
+
+/** Contract of a custom field widget (`widget: "name"` on a field, registered in `<ZayApp widgets={...} />`). */
+export type WidgetProps = {
+  field: Field;
+  value: unknown;
+  onChange: (next: unknown) => void;
+  /** Path of the field inside its document. */
+  path: (string | number)[];
+  /** Validation messages for this field (empty until the first failed save). */
+  errors: string[];
+  /** In a translation tab: the default language's value. */
+  reference?: unknown;
+  translating: boolean;
+};
+
+export type WidgetMap = Record<string, React.ComponentType<WidgetProps>>;

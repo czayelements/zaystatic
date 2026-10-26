@@ -113,8 +113,8 @@ delete) or repo adapter; **media library** page + picker modal in every image fi
 pull-request workflow** (`workflow: "pull-request"`): draft branch + PR per entry, reads show the draft, Review page, Publish
 (merge) / Discard (close), preview links (`previewUrl` template), draft chips in lists.
 
-**Panel**: drag-and-drop lists/blocks, field search, ⌘S, unsaved-changes guard, light/dark, mobile layout, list sorting, custom
-editors (plug-ins). Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
+**Panel**: drag-and-drop lists/blocks, field search, ⌘S, unsaved-changes guard, light/dark, mobile layout, list sorting.
+**Extensibility**: custom editors (several per collection/singleton, with a view switcher, language-aware props) and per-field widgets, both registered by name in `<ZayApp editors widgets>`; the panel's parts (`PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`) are exported for reuse. Sidebar areas **Content / Media / Review** as tabs; Content shows user-defined groups, and ungrouped items fall
 into automatic Collections / Singletons / File sets sections; kind icons on every item.
 
 **Panel language management**: the package owns the panel languages (`en`, `tr`); language picker in the sidebar (choice remembered), opt-in browser-language detection, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); projects cannot add or override panel strings.
@@ -161,7 +161,7 @@ Ordered by value. Each item says where to start and what "done" means.
 
 ### C. Developer experience
 1. **Generate TypeScript types and a typed reader** from the schema (the biggest ergonomic win for users).
-2. **Custom field widgets** (not just whole-entry editors) and **server-side custom validators** (needs a serialisable contract).
+2. **Server-side custom validators** (needs a serialisable contract); a documented widget gallery (colour, date range, map point, tags) as optional add-on packages.
 3. **Schema migration helper** (rename a field across all files, keeping translations aligned).
 4. **Presigned uploads** straight from the browser to S3 to bypass platform body limits (needs bucket CORS docs).
 5. **Image pipeline hooks** (resize/convert) and alt-text fields.

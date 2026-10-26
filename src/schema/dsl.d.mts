@@ -33,6 +33,8 @@ export interface Field {
   maxLength?: number;
   /** Regular expression source the value must match; add `patternMessage` to explain it. */
   pattern?: string | [source: string, message: string];
+  /** Render this field with a custom widget: the name of a component in `<ZayApp widgets={...} />`. */
+  widget?: string;
   patternMessage?: string;
   min?: number | null;
   max?: number | null;

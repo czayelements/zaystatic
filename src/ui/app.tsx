@@ -9,19 +9,22 @@ import { CollectionView, Dashboard, EntryView, FileSetView, MediaView, ReviewVie
 import type { NavItem } from "./views";
 import { resolveMessages } from "./i18n";
 import { initialLanguage, languageName } from "./language";
-import type { EditorMap, Schema, SessionInfo } from "./types";
+import type { EditorMap, Schema, SessionInfo, WidgetMap } from "./types";
 import { cx } from "./util";
 
 export type ZayAppProps = {
   /** API path (same as ZayConfig.apiPath), e.g. "/api/zay". */
   apiPath: string;
-  /** Site-specific custom editors: Collection.editor name → component. */
+  /** Your own editors: the names used in `editors: [...]` on collections and singletons → components. */
   editors?: EditorMap;
+  /** Your own field widgets: the names used as `widget: "..."` on fields → components. */
+  widgets?: WidgetMap;
 };
 
 const NO_EDITORS: EditorMap = {};
+const NO_WIDGETS: WidgetMap = {};
 
-export function ZayApp({ apiPath, editors = NO_EDITORS }: ZayAppProps) {
+export function ZayApp({ apiPath, editors = NO_EDITORS, widgets = NO_WIDGETS }: ZayAppProps) {
   const api = React.useMemo(() => createApi(apiPath), [apiPath]);
   const [session, setSession] = React.useState<SessionInfo | null>(null);
   /* undefined: loading; null: no schema (sign-in screen / unconfigured) */
@@ -69,7 +72,7 @@ export function ZayApp({ apiPath, editors = NO_EDITORS }: ZayAppProps) {
 
   return (
     <div className="zs-root">
-      <ZayProvider api={api} schema={schema} session={session} editors={editors} refreshSchema={() => setTick((n) => n + 1)} lang={lang} onLanguage={setLang}>
+      <ZayProvider api={api} schema={schema} session={session} editors={editors} widgets={widgets} refreshSchema={() => setTick((n) => n + 1)} lang={lang} onLanguage={setLang}>
         <Shell />
       </ZayProvider>
     </div>

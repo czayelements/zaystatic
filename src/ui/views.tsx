@@ -10,7 +10,8 @@ import type { ListOp } from "./form";
 import { Plus, Search, Trash } from "./icons";
 import { MediaLibrary } from "./media";
 import { DraftControls, ErrorBox, Loading, LocaleTabs, PageHeader, SaveBar, useAsync, useDirty, useSaveShortcut } from "./parts";
-import type { Docs, DraftInfo, DraftRef, EntrySummary } from "./types";
+import type { Docs, DraftInfo, DraftRef, EditorProps, EntrySummary } from "./types";
+import type { ResolvedEditor } from "../core/i18n";
 import { clone, cx, slugify } from "./util";
 import type { Messages } from "./i18n";
 import { ValidationProvider, toErrors, validateDocs } from "./validation";
@@ -146,6 +147,45 @@ export function CollectionView({ name }: { name: string }) {
   );
 }
 
+/* ── Custom editors ─────────────────────────────────────────────── */
+
+type EditorChoice = {
+  /** Editors the project registered for this content (unregistered names are skipped). */
+  available: ResolvedEditor[];
+  /** "form" or an editor name. */
+  current: string;
+  setView: (name: string) => void;
+  Editor: React.ComponentType<EditorProps> | undefined;
+  spec: ResolvedEditor | undefined;
+};
+
+/** Which view is showing: the standard form, or one of the project's editors (the one flagged `default` opens first). */
+function useEditorChoice(list: ResolvedEditor[] | undefined): EditorChoice {
+  const { editors } = useZay();
+  const available = (list ?? []).filter((e) => editors[e.name]);
+  const [picked, setView] = React.useState<string | null>(null);
+  const current = picked && (picked === "form" || available.some((e) => e.name === picked)) ? picked : (available.find((e) => e.default)?.name ?? "form");
+  const spec = available.find((e) => e.name === current);
+  return { available, current, setView, Editor: spec ? editors[spec.name] : undefined, spec };
+}
+
+function EditorSwitch({ choice }: { choice: EditorChoice }) {
+  const { t } = useZay();
+  if (!choice.available.length) return null;
+  return (
+    <div className="zs-seg zs-seg-sm">
+      <button type="button" className={cx(choice.current === "form" && "is-on")} onClick={() => choice.setView("form")}>
+        {t.form}
+      </button>
+      {choice.available.map((e) => (
+        <button key={e.name} type="button" className={cx(choice.current === e.name && "is-on")} onClick={() => choice.setView(e.name)}>
+          {e.label ?? t.visual}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 /* ── Entry editor ───────────────────────────────────────────────── */
 
 /** Empty documents for a new entry: every field in the default language, only the translated ones elsewhere. */
@@ -175,12 +215,12 @@ function listFieldAt(fields: Fields, path: (string | number)[], doc: unknown): F
 }
 
 export function EntryView({ name, slug }: { name: string; slug: string }) {
-  const { api, schema, t, navigate, toast, editors, setGuard, bumpDrafts, session } = useZay();
+  const { api, schema, t, navigate, toast, setGuard, bumpDrafts, session } = useZay();
   const col = schema.collections[name];
   const isNew = slug === "_new";
   const def = schema.defaultLocale;
   const localized = Boolean(col?.i18n);
-  const Editor = col?.editor ? editors[col.editor] : undefined;
+  const choice = useEditorChoice(col?.editors);
 
   /* The panel remounts this component for every entry (key), so the initial state is one-shot. */
   const initial = isNew && col ? blankDocs(col.fields, col.i18n ? col.i18nFields : undefined, schema.locales, def) : null;
@@ -188,7 +228,6 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const [saved, setSaved] = React.useState<string | null>(initial ? JSON.stringify(initial) : null);
   const [error, setError] = React.useState<string | null>(null);
   const [active, setActive] = React.useState(def);
-  const [view, setView] = React.useState<"visual" | "form">("visual");
   const [newSlug, setNewSlug] = React.useState("");
   const [slugTouched, setSlugTouched] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -299,7 +338,30 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
   const translating = localized && active !== def;
   const fieldsFor = localeFields(active);
   const invalidTabs = showErrors ? Object.fromEntries(Object.entries(issues).map(([l, list]) => [l, list.length > 0])) : {};
-  const showVisual = Boolean(Editor) && view === "visual";
+  const Editor = choice.Editor;
+  const showVisual = Boolean(Editor);
+  const editorProps: EditorProps = {
+    kind: "collection",
+    name,
+    slug: isNew ? undefined : slug,
+    isNew,
+    fields: col.fields,
+    i18nFields: col.i18nFields,
+    activeFields: fieldsFor,
+    locales: schema.locales,
+    defaultLocale: def,
+    localeNames: schema.localeNames,
+    translated: localized,
+    activeLocale: active,
+    setActiveLocale: setActive,
+    docs,
+    setDocs,
+    value: docs[active] ?? {},
+    onChange: (next) => setDocs({ ...docs, [active]: next }),
+    errors: toErrors(t, issues[active] ?? []),
+    showErrors,
+  };
+  const showTabs = localized && (!showVisual || choice.spec?.languages !== "self");
 
   return (
     <>
@@ -309,16 +371,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
         sub={!isNew ? <code>{slug}</code> : undefined}
         actions={
           <>
-            {Editor && (
-              <div className="zs-seg zs-seg-sm">
-                <button type="button" className={cx(view === "visual" && "is-on")} onClick={() => setView("visual")}>
-                  {t.visual}
-                </button>
-                <button type="button" className={cx(view === "form" && "is-on")} onClick={() => setView("form")}>
-                  {t.form}
-                </button>
-              </div>
-            )}
+            <EditorSwitch choice={choice} />
             <DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />
             {!isNew && (
               <button type="button" className="zs-btn zs-btn-ghost zs-danger" onClick={remove}>
@@ -346,11 +399,11 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
         </div>
       )}
 
-      {localized && !showVisual && (
+      {showTabs && (
         <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={def} invalid={invalidTabs} />
       )}
 
-      {translating && (
+      {translating && showTabs && !showVisual && (
         <div className="zs-note">
           <span>{t.sourceNote}</span>
           <button
@@ -371,15 +424,7 @@ export function EntryView({ name, slug }: { name: string; slug: string }) {
       <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues[active] ?? []) }}>
       <ListOpProvider value={localized && !translating ? onListOp : null}>
         {showVisual && Editor ? (
-          <Editor
-            slug={slug}
-            fields={col.fields}
-            locales={schema.locales}
-            defaultLocale={def}
-            localeNames={schema.localeNames}
-            value={docs[def] ?? {}}
-            onChange={(v) => setDocs({ ...docs, [def]: v })}
-          />
+          <Editor key={`${choice.current}:${active}`} {...editorProps} />
         ) : (
           <Form
             key={active}
@@ -411,6 +456,7 @@ export function SingletonView({ name }: { name: string }) {
   const [showErrors, setShowErrors] = React.useState(false);
   const [draft, setDraft] = React.useState<DraftRef | null>(null);
   const [active, setActive] = React.useState(defLocale);
+  const choice = useEditorChoice(def?.editors);
 
   const localeFields = React.useCallback(
     (l: string): Fields => (!def ? {} : l === defLocale ? def.fields : (def.i18nFields ?? {})),
@@ -491,11 +537,41 @@ export function SingletonView({ name }: { name: string }) {
 
   const translating = translated && active !== defLocale;
   const invalidTabs = showErrors ? Object.fromEntries(Object.entries(issues).map(([l, list]) => [l, list.length > 0])) : {};
+  const Editor = choice.Editor;
+  const showTabs = translated && (!Editor || choice.spec?.languages !== "self");
+  const editorProps: EditorProps = {
+    kind: "singleton",
+    name,
+    isNew: false,
+    fields: def.fields,
+    i18nFields: def.i18nFields,
+    activeFields: localeFields(active),
+    locales: schema.locales,
+    defaultLocale: defLocale,
+    localeNames: schema.localeNames,
+    translated,
+    activeLocale: active,
+    setActiveLocale: setActive,
+    docs,
+    setDocs,
+    value: docs[active] ?? {},
+    onChange: (next) => setDocs({ ...docs, [active]: next }),
+    errors: toErrors(t, issues[active] ?? []),
+    showErrors,
+  };
   return (
     <>
-      <PageHeader title={def.label} actions={<DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />} />
-      {translated && <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={defLocale} invalid={invalidTabs} />}
-      {translating && (
+      <PageHeader
+        title={def.label}
+        actions={
+          <>
+            <EditorSwitch choice={choice} />
+            <DraftControls draft={draft} dirty={dirty} onChanged={() => setDraft(null)} />
+          </>
+        }
+      />
+      {showTabs && <LocaleTabs locales={schema.locales} docs={docs} active={active} onChange={setActive} defaultLocale={defLocale} invalid={invalidTabs} />}
+      {translating && showTabs && !Editor && (
         <div className="zs-note">
           <span>{t.sourceNote}</span>
           <button
@@ -509,13 +585,17 @@ export function SingletonView({ name }: { name: string }) {
       )}
       <ValidationProvider value={{ show: showErrors, errors: toErrors(t, issues[active] ?? []) }}>
         <ListOpProvider value={translated && !translating ? onListOp : null}>
-          <Form
-            key={active}
-            fields={localeFields(active)}
-            value={docs[active] ?? {}}
-            reference={translating ? docs[defLocale] : undefined}
-            onChange={(v) => setDocs({ ...docs, [active]: v })}
-          />
+          {Editor ? (
+            <Editor key={`${choice.current}:${active}`} {...editorProps} />
+          ) : (
+            <Form
+              key={active}
+              fields={localeFields(active)}
+              value={docs[active] ?? {}}
+              reference={translating ? docs[defLocale] : undefined}
+              onChange={(v) => setDocs({ ...docs, [active]: v })}
+            />
+          )}
         </ListOpProvider>
       </ValidationProvider>
       <SaveBar dirty={dirty} saving={saving} onSave={save} label={session.workflow === "pull-request" ? t.saveDraft : t.save} issues={showErrors ? issueCount : 0} />

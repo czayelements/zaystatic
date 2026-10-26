@@ -360,17 +360,75 @@ The signed-in user's own token (scope `repo`) makes the commits, so history show
 what. If the variables are missing in production the panel stays closed: it never falls back to
 local files.
 
-## Custom editors
+## Custom editors and widgets
 
-A collection can name a custom React editor, shown next to the generic form as a "Visual / Form" switch:
+The panel's standard form works for any schema, but your data may deserve a better view: a diagram, a page layout, a
+board, a map. zay-static lets **your site render the data however it wants** while the panel keeps saving, validation,
+drafts, language tabs and image uploads. Two extension points, both plain React components registered by name:
 
 ```tsx
-<ZayApp apiPath="/api/cms" editors={{ roadmap: RoadmapEditor }} />
-// schema: defineCollection({ …, editor: "roadmap" })
+"use client";
+import { ZayApp } from "zay-static/ui";
+import { RoadmapEditor } from "./roadmap-editor";
+import { ColorWidget } from "./color-widget";
+
+export const Panel = () => (
+  <ZayApp apiPath="/api/cms" editors={{ roadmap: RoadmapEditor }} widgets={{ color: ColorWidget }} />
+);
 ```
 
-An editor receives `{ slug, fields, locales, defaultLocale, localeNames, value, onChange }`; saving
-stays with the panel.
+**Editors** replace the whole form with your own view of an entry. Attach one or several to any collection or singleton;
+the panel adds a switcher (Form · your editors):
+
+```ts
+defineCollection({
+  // …
+  editors: [
+    "roadmap",                                                        // shorthand: opens first
+    { name: "board", label: { en: "Board", de: "Tafel" }, default: false, languages: "tabs" },
+  ],
+});
+```
+
+An editor receives `EditorProps`:
+
+| prop | meaning |
+| --- | --- |
+| `value`, `onChange(next)` | the **active language's** document, and a setter. All you need for untranslated content. |
+| `docs`, `setDocs(next)` | every language's document (for `languages: "self"`) |
+| `kind`, `name`, `slug`, `isNew` | what is being edited (`slug` is undefined for singletons and unsaved entries) |
+| `fields`, `i18nFields`, `activeFields` | the schema: all fields, the translated subset, and what applies to the active language |
+| `translated`, `activeLocale`, `setActiveLocale`, `locales`, `defaultLocale`, `localeNames` | language state |
+| `errors`, `showErrors` | validation messages by field path (`"items.0.title"`) for the active language |
+
+With translated content the panel shows the language tabs above your editor and passes the active language's document
+(`languages: "tabs"`, the default); use `languages: "self"` to get all documents and manage languages yourself.
+
+Build your editor from the panel's own parts, all exported from `zay-static/ui`:
+
+- `PanelForm` — the schema-driven form (lists, blocks, drag and drop, validation) for any `fields`, so you can render
+  *part* of a document your own way and hand the rest to the standard form;
+- `ImageInput` and `MediaLibrary` — the upload / link / library picker;
+- `useZay()` — the API client, the panel's `t` strings, `toast`, the current language;
+- `LocaleTabs`, `Modal`, `Link`.
+
+**Widgets** replace the control of a single field. Name one on the field, register it in `widgets`, and render the value your way:
+
+```ts
+colour: str("Colour", { widget: "color" })
+```
+```tsx
+export function ColorWidget({ value, onChange, errors }: WidgetProps) {
+  return <input type="color" value={String(value || "#000000")} onChange={(e) => onChange(e.target.value)} />;
+}
+```
+
+A widget gets `field`, `value`, `onChange`, `path`, `errors`, and (in a translation tab) `reference` and `translating`. It works on
+any field type, including lists and objects, and inside lists and blocks.
+
+Because editors run in your app they can import your site's own components, so what editors see is exactly what visitors see (czay.dev
+does this for its roadmap diagrams: the editor draws the same diagram the public page does and lets you drag the boxes around).
+Custom editors are loaded by your code, so keep heavy ones lazy (`next/dynamic`) to keep the rest of the panel light.
 
 ## Security
 
@@ -409,7 +467,7 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 | `zay-static/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
 | `zay-static/next` | `createNextHandlers` |
 | `zay-static/node` | `createNodeHandler` |
-| `zay-static/ui` | `ZayApp`, `EditorProps` |
+| `zay-static/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
 | `zay-static/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
 
 ## Limitations

@@ -6,7 +6,7 @@ import type { Api } from "./api";
 import { resolveMessages } from "./i18n";
 import { availableLanguages, storeLanguage } from "./language";
 import type { Messages } from "./i18n";
-import type { EditorMap, Schema, SessionInfo } from "./types";
+import type { EditorMap, Schema, SessionInfo, WidgetMap } from "./types";
 import { cx } from "./util";
 
 type Toast = { id: number; kind: "ok" | "error"; text: string };
@@ -18,6 +18,7 @@ type Ctx = {
   t: Messages;
   basePath: string;
   editors: EditorMap;
+  widgets: WidgetMap;
   /** Current path relative to the base path, e.g. "/c/blog/my-post". */
   path: string;
   navigate: (to: string, opts?: { replace?: boolean }) => void;
@@ -55,6 +56,7 @@ export function ZayProvider({
   schema,
   session,
   editors,
+  widgets,
   refreshSchema,
   lang,
   onLanguage,
@@ -64,6 +66,7 @@ export function ZayProvider({
   schema: Schema;
   session: SessionInfo;
   editors: EditorMap;
+  widgets: WidgetMap;
   refreshSchema: () => void;
   lang: string;
   /** Called with the new language once the user confirmed (unsaved changes ask first). */
@@ -135,8 +138,8 @@ export function ZayProvider({
   }, []);
 
   const value = React.useMemo<Ctx>(
-    () => ({ api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts }),
-    [api, schema, session, t, basePath, editors, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts],
+    () => ({ api, schema, session, t, basePath, editors, widgets, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts }),
+    [api, schema, session, t, basePath, editors, widgets, path, navigate, setGuard, toast, refreshSchema, lang, languages, setLang, viewTick, reloadView, draftTick, bumpDrafts],
   );
 
   return (

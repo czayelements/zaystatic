@@ -149,7 +149,9 @@ type RowProps = {
 function FieldRow(props: RowProps) {
   const { field, compact } = props;
   const errors = useFieldErrors(props.path);
-  const complex = field.type === "list" || field.type === "blocks" || (field.type === "object" && !field.inline);
+  const { widgets } = useZay();
+  const custom = Boolean(field.widget && widgets[field.widget]);
+  const complex = !custom && (field.type === "list" || field.type === "blocks" || (field.type === "object" && !field.inline));
   const problems = errors.length > 0 && !complex && (
     <p className="zs-field-error" role="alert">
       {errors.join(" · ")}
@@ -183,6 +185,13 @@ function FieldRow(props: RowProps) {
 function Control(props: RowProps) {
   const { name, field, value, reference, translating, onChange } = props;
   const ref = typeof reference === "string" && reference ? reference : null;
+  const { widgets } = useZay();
+  const errors = useFieldErrors(props.path);
+  /* A custom widget (`widget: "name"` on the field) replaces the built-in control. */
+  const Widget = field.widget ? widgets[field.widget] : undefined;
+  if (Widget) {
+    return <Widget field={field} value={value} onChange={onChange} path={props.path} errors={errors} reference={reference} translating={translating} />;
+  }
 
   switch (field.type) {
     case "string":
@@ -284,7 +293,7 @@ function Area({ value, onChange, rows, mono }: { value: string; onChange: (v: st
 
 const looksLikeUrl = (v: string) => /^(https?:\/\/|\/|data:image\/)/.test(v.trim());
 
-function ImageField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+export function ImageField({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
   const { api, session, t, toast } = useZay();
   const media = session.media;
   const [busy, setBusy] = React.useState(false);

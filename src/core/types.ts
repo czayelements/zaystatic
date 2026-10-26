@@ -36,12 +36,37 @@ export type Collection = {
   sort?: { field: string; order?: "asc" | "desc" };
   /** Sidebar group (ZayConfig.groups[].id). */
   group?: string;
-  /** Name of a custom editor (registered in ZayApp `editors`); shown instead of / next to the form. */
+  /**
+   * Custom editors for this collection: your own React components, registered by name in
+   * `<ZayApp editors={...} />`. Each one appears next to the standard form as a view the editor
+   * can switch to, and renders the data however the site wants (a diagram, a page preview, a
+   * kanban …). A name is shorthand for `{ name, default: true }`.
+   */
+  editors?: (string | EditorSpec)[];
+  /** @deprecated Use `editors: ["name"]`. */
   editor?: string;
 };
 
 /** Single-file content (settings, menus …). */
+/** A custom editor offered for a collection or singleton. */
+export type EditorSpec = {
+  /** Key in the `editors` map given to `<ZayApp>`. */
+  name: string;
+  /** Switcher label (string or per-language map); defaults to the panel's "Visual editor". */
+  label?: Label;
+  /** Open this view first (default: the standard form, unless the old `editor: "name"` shorthand is used). */
+  default?: boolean;
+  /**
+   * "tabs" (default): when the content is translated the panel shows the language tabs and hands
+   * the editor the active language's document. "self": the editor receives every language's
+   * document and handles languages itself.
+   */
+  languages?: "tabs" | "self";
+};
+
 export type Singleton = {
+  /** Custom editors, like `Collection.editors`. */
+  editors?: (string | EditorSpec)[];
   /** Translate this single file (stored as `<name>.<locale>.json`); see Collection.i18n. */
   i18n?: I18nOption;
   label: Label;

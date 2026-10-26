@@ -1,5 +1,6 @@
 import type { Field, Fields } from "../schema/dsl.mjs";
 import { isI18n, translatableOf } from "./translation";
+import type { EditorSpec } from "./types";
 import type { Collection, FileSet, FileSetFile, ResolvedConfig, Singleton } from "./types";
 
 /**
@@ -54,17 +55,30 @@ type Labelled<T> = Omit<T, "label"> & { label: string };
  * What the panel needs to know about translation: whether it is on, and which fields the
  * non-default language tabs show (`i18nFields`, already resolved to the panel language).
  */
-function withI18n<T extends Collection | Singleton>(def: T, lang: string): Labelled<T> & { i18n: boolean; i18nFields?: Fields } {
+export type ResolvedEditor = { name: string; label?: string; default: boolean; languages: "tabs" | "self" };
+
+/** `editors` (or the old `editor: "name"` shorthand, which opens first) as a uniform, localized list. */
+function resolveEditors(def: { editors?: (string | EditorSpec)[]; editor?: string }, lang: string): ResolvedEditor[] {
+  const list: (string | EditorSpec)[] = def.editors ?? (def.editor ? [{ name: def.editor, default: true }] : []);
+  return list.map((e) => {
+    const spec: EditorSpec = typeof e === "string" ? { name: e, default: true } : e;
+    return { name: spec.name, ...(spec.label !== undefined ? { label: pick(spec.label, lang) } : {}), default: spec.default === true, languages: spec.languages ?? "tabs" };
+  });
+}
+
+function withI18n<T extends Collection | Singleton>(def: T, lang: string): Labelled<T> & { i18n: boolean; i18nFields?: Fields; editors: ResolvedEditor[] } {
   const on = isI18n(def);
-  const { layout: _layout, ...rest } = def as T & { layout?: unknown };
+  const { layout: _layout, editor: _editor, ...rest } = def as T & { layout?: unknown; editor?: unknown };
   void _layout;
+  void _editor;
   return {
     ...rest,
+    editors: resolveEditors(def, lang),
     label: pick(def.label, lang),
     fields: localizeFields(def.fields, lang),
     i18n: on,
     ...(on ? { i18nFields: localizeFields(translatableOf(def), lang) } : {}),
-  } as unknown as Labelled<T> & { i18n: boolean; i18nFields?: Fields };
+  } as unknown as Labelled<T> & { i18n: boolean; i18nFields?: Fields; editors: ResolvedEditor[] };
 }
 
 export function localizeSchema(config: ResolvedConfig, lang: string) {
