@@ -42,6 +42,9 @@ export type ListOp =
 type Emit = (path: Path, op: ListOp) => void;
 const ListOpContext = React.createContext<Emit | null>(null);
 export const ListOpProvider = ListOpContext.Provider;
+/** Reports a structural change of a list/blocks field so the panel can mirror it into translations. */
+export const useListOpEmitter = () => React.useContext(ListOpContext);
+export { blankItem, blockField };
 
 /** A block's field schema (behaves like an object). */
 const blockField = (field: Field, type: unknown): Field | undefined => {

@@ -8,3 +8,6 @@ export { Form as PanelForm, ImageField as ImageInput } from "./form";
 export { MediaLibrary } from "./media";
 export { Modal } from "./modal";
 export { LocaleTabs } from "./parts";
+
+export { createBlockBuilder } from "./builder";
+export type { BlockBuilderOptions, BlockPreviewProps } from "./builder";

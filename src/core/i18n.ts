@@ -40,7 +40,7 @@ export function localizeField(field: Field, lang: string): Field {
   if (field.item) f.item = localizeField(field.item, lang);
   if (field.blocks) {
     f.blocks = Object.fromEntries(
-      Object.entries(field.blocks).map(([k, b]) => [k, { ...b, label: pick(b.label, lang), ...(b.hint !== undefined ? { hint: pick(b.hint, lang) } : {}), fields: localizeFields(b.fields, lang) }]),
+      Object.entries(field.blocks).map(([k, b]) => [k, { ...b, label: pick(b.label, lang), ...(b.hint !== undefined ? { hint: pick(b.hint, lang) } : {}), ...(b.description !== undefined ? { description: pick(b.description, lang) } : {}), fields: localizeFields(b.fields, lang) }]),
     );
   }
   return f as unknown as Field;

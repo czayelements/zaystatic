@@ -14,6 +14,10 @@ export interface BlockType {
   fields: Fields;
   /** Template for the collapsed row title, e.g. "{{title}}". */
   summary?: string;
+  /** Shown on the block's card in the visual builder's palette. */
+  description?: string;
+  /** A short glyph for the palette card (an emoji or a letter). */
+  icon?: string;
 }
 
 export interface Field {
