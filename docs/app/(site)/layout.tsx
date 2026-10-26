@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body>
         <div className="dev-banner">
           <b>Under development.</b> zaystatic is an early alpha: the API may change and it is not production-ready yet.{" "}

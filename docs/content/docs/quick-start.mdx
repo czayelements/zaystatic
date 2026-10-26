@@ -78,7 +78,7 @@ export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
 
 ### Add the panel page
 
-The panel has its own root layout, so it does not inherit your site's header or cookie banner.
+The panel has its own root layout, so it does not inherit your site's header or cookie banner. `suppressHydrationWarning` keeps React from complaining when a browser extension (Google Tag Assistant, for example) edits the `<html>` tag before the page loads.
 
 ```tsx
 // app/cms/layout.tsx
@@ -86,7 +86,7 @@ import "@czayelements/zaystatic/styles.css";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body style={{ margin: 0 }}>{children}</body>
     </html>
   );

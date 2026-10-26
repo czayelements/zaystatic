@@ -134,7 +134,7 @@ export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
 // app/cms/layout.tsx  (own root layout: no site chrome)
 import "@czayelements/zaystatic/styles.css";
 export default ({ children }: { children: React.ReactNode }) => (
-  <html lang="en"><body style={{ margin: 0 }}>{children}</body></html>
+  <html lang="en" suppressHydrationWarning><body style={{ margin: 0 }}>{children}</body></html>
 );
 
 // app/cms/[[...path]]/page.tsx

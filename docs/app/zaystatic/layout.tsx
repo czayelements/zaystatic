@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "zaystatic docs · panel", robots: { 
 /* The panel has its own root layout: no site chrome around it. */
 export default function PanelLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body style={{ margin: 0 }}>{children}</body>
     </html>
   );
