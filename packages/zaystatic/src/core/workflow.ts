@@ -1,4 +1,5 @@
 import { githubClient, githubStore } from "./store-github";
+import { withPathPrefix } from "./store-prefix";
 import type { GithubClient } from "./store-github";
 import { HttpError } from "./types";
 import type { Change, DraftRef, ResolvedConfig, Store, WorkflowConfig } from "./types";
@@ -176,10 +177,12 @@ export function draftStore(opts: {
   token: string;
   repo: { owner: string; name: string; branch: string };
   apiUrl?: string;
+  /** Folder of the repository that is the content root (the base store already applies it). */
+  prefix?: string;
   branch: string;
 }): DraftStore {
   const { base, prs, branch } = opts;
-  const onBranch = githubStore(opts.token, { ...opts.repo, branch }, opts.apiUrl);
+  const onBranch = withPathPrefix(githubStore(opts.token, { ...opts.repo, branch }, opts.apiUrl), opts.prefix);
   let current: DraftRef | null | undefined;
   const draft = async () => (current === undefined ? (current = await prs.findOpen(branch)) : current);
   const reader = async () => ((await draft()) ? onBranch : base);

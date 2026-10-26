@@ -274,6 +274,26 @@ list("Tags", str("Tag"), { minItems: 1, maxItems: 5 })
 Rules are checked by the same function (`validateDoc`) on the server and in the panel. Translations may be partial:
 `required` applies to the default language only, other rules apply to whatever is filled in.
 
+## Reading your content
+
+The panel writes files; the **reader** returns the same documents to your site's code, completed with the schema's defaults and language-aware:
+
+```ts
+import { createReader, createGitHubReader } from "@czayelements/zaystatic/reader";
+
+const reader = createReader(config);                      // files of your project (or any checkout)
+// or: content in ANOTHER repository, fetched through the GitHub API
+const remote = createGitHubReader(config, { repo: "my-org/site-content", token: process.env.CONTENT_TOKEN!, pathPrefix: "apps/web" });
+
+await reader.collections.posts.list();                                  // ["hello", "second-post"]
+await reader.collections.posts.read("hello", { locale: "de" });         // translation over the default language
+await reader.collections.posts.all();                                   // every entry
+await reader.singletons.home.read();
+await reader.fileSets.messages.read("nav", { locale: "de" });
+```
+
+For other languages the translation is overlaid on the default language's document (empty values fall back; lists and blocks line up by position); `{ fallback: false }` returns the translation alone. To keep content in a separate repository, set `repo` to it for the panel (with `pathPrefix` if the content is in a sub-folder) and read it with `createGitHubReader`; add a webhook on that repository to rebuild your site. See the [documentation](https://github.com/czayelements/zaystatic/blob/main/docs/content/docs/reading-content.mdx).
+
 ## Panel language
 
 The panel's own wording (buttons, messages, empty states) is **owned by the package**: it ships a fixed set of languages
@@ -359,6 +379,7 @@ platform's request-body limit applies (about 6 MB on Netlify and Vercel function
 | `ZAY_ALLOWED_USERS` | comma-separated GitHub logins allowed in (they also need push access to the repo) |
 | `ZAY_PUBLIC_URL` | optional; the public origin when a proxy hides it |
 | `ZAY_BRANCH` | optional; read from and commit to this branch instead of `repo.branch` (try the panel on a test branch) |
+| `ZAY_PATH_PREFIX` | optional; overrides `repo.pathPrefix` (the content folder inside the repository) |
 
 The signed-in user's own token (scope `repo`) makes the commits, so history shows who changed
 what. If the variables are missing in production the panel stays closed: it never falls back to
@@ -514,6 +535,7 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 | `@czayelements/zaystatic/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
 | `@czayelements/zaystatic/next` | `createNextHandlers` |
 | `@czayelements/zaystatic/node` | `createNodeHandler` |
+| `@czayelements/zaystatic/reader` | `createReader`, `createGitHubReader` |
 | `@czayelements/zaystatic/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
 | `@czayelements/zaystatic/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
 

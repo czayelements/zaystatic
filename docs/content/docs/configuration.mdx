@@ -32,7 +32,7 @@ A single-file setup works too: pass `collections`, `singletons`, `fileSets` and 
 | `localeNames` | Display names for the content languages, for example `{ en: "English", de: "Deutsch" }`. |
 | `basePath` | Path of the panel page, for example `/cms`. |
 | `apiPath` | Path of the API, for example `/api/cms`. |
-| `repo` | `{ owner, name, branch, apiUrl? }`. Production saves are committed here. `apiUrl` is for GitHub Enterprise. |
+| `repo` | `{ owner, name, branch, pathPrefix?, apiUrl? }`. Production saves are committed here. `pathPrefix` is the content folder inside the repository when it is not the root (for example `apps/web` in a monorepo); schema paths stay relative to it and local mode is unaffected. `apiUrl` is for GitHub Enterprise. |
 | `schema` | The content model, see [the content model](/docs/content-model). |
 | `groups` | Sidebar groups. |
 | `media` | Image uploads: `{ adapter, maxBytes?, accept? }`. See [images and media](/docs/images-and-media). |
@@ -53,6 +53,7 @@ Secrets and the run mode come from the environment, not from the config file.
 | `ZAY_ALLOWED_USERS` | Comma-separated GitHub logins that may sign in. |
 | `ZAY_PUBLIC_URL` | Optional: the public origin when a proxy hides it. |
 | `ZAY_BRANCH` | Optional: read from and commit to this branch instead of `repo.branch`. Handy for trying the panel on a test branch. |
+| `ZAY_PATH_PREFIX` | Optional: overrides `repo.pathPrefix`. |
 | `ZAY_S3_*` | Optional: image storage, see [images and media](/docs/images-and-media). |
 
 See [authentication](/docs/authentication) for how these fit together.

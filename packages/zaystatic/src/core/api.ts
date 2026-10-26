@@ -29,6 +29,7 @@ import {
 } from "./content";
 import { DEFAULT_ACCEPT, DEFAULT_MAX_BYTES, SAFE_KEY, extFor, mediaKey, sniffImage, svgIsSafe } from "./media";
 import { fsStore } from "./store-fs";
+import { withPathPrefix } from "./store-prefix";
 import { githubStore } from "./store-github";
 import { PullRequests, branchFor, draftStore, workflowOf } from "./workflow";
 import type { Draft, DraftStore, Target } from "./workflow";
@@ -159,8 +160,10 @@ export function createHandler(input: ZayConfig) {
       if (from && from !== url.origin && from !== origin) throw new HttpError(403, "Invalid origin");
     }
 
-    const repo = config.repo && { ...config.repo, branch: baseBranch() };
-    const store: Store = mode === "local" ? fsStore(config.root ?? process.cwd()) : githubStore(session!.token, repo!, repo!.apiUrl);
+    /* ZAY_PATH_PREFIX overrides repo.pathPrefix (a blank value means "not set"). */
+    const pathPrefix = process.env.ZAY_PATH_PREFIX?.trim() || config.repo?.pathPrefix;
+    const repo = config.repo && { ...config.repo, branch: baseBranch(), pathPrefix };
+    const store: Store = mode === "local" ? fsStore(config.root ?? process.cwd()) : withPathPrefix(githubStore(session!.token, repo!, repo!.apiUrl), pathPrefix);
     const ctx = { config, store };
 
     /* Pull-request workflow (GitHub mode only). */
@@ -169,7 +172,7 @@ export function createHandler(input: ZayConfig) {
 
     /** The store for one editing target: its draft branch when the workflow is on, the plain store otherwise. */
     const storeFor = (target: Target): Store | DraftStore =>
-      prs ? draftStore({ base: store, prs, token: session!.token, repo: repo!, apiUrl: repo!.apiUrl, branch: branchFor(wf.branchPrefix, target) }) : store;
+      prs ? draftStore({ base: store, prs, token: session!.token, repo: repo!, apiUrl: repo!.apiUrl, prefix: pathPrefix, branch: branchFor(wf.branchPrefix, target) }) : store;
     const withDraft = async <T extends object>(s: Store | DraftStore, data: T) => {
       const draft = "info" in s ? await s.info() : null;
       return draft ? { ...data, draft } : data;

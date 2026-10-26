@@ -120,7 +120,7 @@ into automatic Collections / Singletons / File sets sections; kind icons on ever
 
 **Panel language management**: the package owns the panel languages (`en`, `tr`); language picker in the sidebar (choice remembered), opt-in browser-language detection, and per-language labels anywhere in the schema (resolved server-side via `?lang=`); projects cannot add or override panel strings.
 
-**Runtime**: `(Request) => Response` handler; adapters for Next.js and Node/Express; recipes for Hono, SvelteKit, Astro, Workers.
+**Reader**: `@czayelements/zaystatic/reader` (`createReader` for files, `createGitHubReader` for a repository), language-aware with positional overlay. `repo.pathPrefix` / `ZAY_PATH_PREFIX` for content inside a sub-folder of a repository. **Runtime**: `(Request) => Response` handler; adapters for Next.js and Node/Express; recipes for Hono, SvelteKit, Astro, Workers.
 
 ---
 
@@ -162,7 +162,7 @@ Ordered by value. Each item says where to start and what "done" means.
 10. **Autosave of local drafts** (browser storage) and undo/redo inside the form.
 
 ### C. Developer experience
-1. **Generate TypeScript types and a typed reader** from the schema (the biggest ergonomic win for users).
+1. **Typed reader**: the reader (`@czayelements/zaystatic/reader`) returns plain documents; generate TypeScript types from the schema so `read()` is typed (the biggest ergonomic win for users).
 2. **Server-side custom validators** (needs a serialisable contract); a documented widget gallery (colour, date range, map point, tags) as optional add-on packages.
 3. **Schema migration helper** (rename a field across all files, keeping translations aligned).
 4. **Presigned uploads** straight from the browser to S3 to bypass platform body limits (needs bucket CORS docs).
@@ -185,6 +185,12 @@ Ordered by value. Each item says where to start and what "done" means.
 - `npm publish --provenance`; tag 0.1.0; write the first real CHANGELOG entry.
 
 ---
+
+### Content in a separate repository (follow-ups)
+- An optional `onPublish` webhook (POST to a Netlify/Vercel build hook after a successful commit), so a content repository can redeploy the site without a GitHub webhook.
+- A branch picker in the panel (today: `repo.branch` / `ZAY_BRANCH`).
+- GitHub **App** sign-in instead of an OAuth App: repository-scoped, short-lived tokens, instead of the broad `repo` scope.
+- A reader cache / index for large GitHub-backed collections (one API request per file today).
 
 ## Known limitations
 - The panel UI is React-only (the server is not).

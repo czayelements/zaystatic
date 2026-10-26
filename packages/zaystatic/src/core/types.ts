@@ -121,7 +121,19 @@ export type ZayConfig = ZaySchema & {
    */
   workflow?: "direct" | WorkflowConfig;
   /** In production, content is committed to this GitHub repository. */
-  repo?: { owner: string; name: string; branch?: string; /** GitHub Enterprise: API root, e.g. https://ghe.example.com/api/v3 */ apiUrl?: string };
+  repo?: {
+    owner: string;
+    name: string;
+    branch?: string;
+    /**
+     * The content lives in this folder of the repository (for example `apps/web` in a monorepo)
+     * rather than at its root. Paths in the schema stay relative to it, so the same schema works
+     * in local mode (where the project folder is the root) and against GitHub.
+     */
+    pathPrefix?: string;
+    /** GitHub Enterprise: API root, e.g. https://ghe.example.com/api/v3 */
+    apiUrl?: string;
+  };
   /** Content model (zay.schema.ts). */
   schema?: ZaySchema;
   /** Image uploads (optional): s3Media(...), repoMedia() or your own MediaAdapter. */

@@ -87,6 +87,12 @@ async function commitChanges(store: Store, changes: Change[], message: string) {
 
 /* ── Collections ────────────────────────────────────────────────── */
 
+/** The entries of a collection and the languages each one has a file for. */
+export async function entrySlugs({ config, store }: Ctx, name: string): Promise<Map<string, string[]>> {
+  const c = collectionOf(config, name);
+  return slugsOf(config, c, await store.list(c.dir));
+}
+
 function slugsOf(config: ResolvedConfig, c: Collection, files: string[]) {
   const e = ext(c);
   if (!isI18n(c)) {

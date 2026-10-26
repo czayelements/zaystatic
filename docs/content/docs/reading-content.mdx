@@ -1,0 +1,75 @@
+---
+title: "Reading your content"
+description: "Read the documents the panel writes from your site's code: from your own files or straight from a GitHub repository."
+---
+The panel writes files; the **reader** gives you the same documents back, completed with the schema's defaults and aware of languages. Use it in your pages, your build scripts or a server route.
+
+```ts
+import { createReader } from "@czayelements/zaystatic/reader";
+import config from "@/zaystatic.config";
+
+const reader = createReader(config); // reads the files of your project
+
+const slugs = await reader.collections.posts.list();                       // ["hello", "second-post"]
+const post = await reader.collections.posts.read("hello", { locale: "de" });
+const home = await reader.singletons.home.read();
+```
+
+## Where the content comes from
+
+| Reader | Reads | Use it when |
+| --- | --- | --- |
+| `createReader(config, { root? })` | files on disk: your project folder (default), or any checkout | the content is in the same repository as the site, or you clone a content repository during the build |
+| `createGitHubReader(config, options)` | a GitHub repository, through the GitHub API | the content lives in **another repository** and you do not want to clone it |
+
+```ts
+import { createGitHubReader } from "@czayelements/zaystatic/reader";
+
+const reader = createGitHubReader(config, {
+  repo: "my-org/site-content",       // "owner/name"
+  ref: "main",                       // branch, default "main"
+  token: process.env.CONTENT_TOKEN!, // a read-only token for that repository
+  pathPrefix: "apps/web",            // optional: the content folder inside the repository
+});
+```
+
+The token needs read access to the repository (a fine-grained token with *Contents: read*). It is separate from the panel's sign-in settings. The GitHub reader makes one API request per file, so for large collections prefer a local checkout at build time.
+
+## What you get back
+
+### Collections
+
+| Method | Returns |
+| --- | --- |
+| `list()` | the addresses of the entries |
+| `read(slug, options?)` | one entry as a document, or `null` if there is none |
+| `all(options?)` | every entry: `{ slug, entry }[]`, in address order |
+| `locales(slug)` | the languages the entry has a file for |
+| `docs(slug)` | every language's document, keyed by language, or `null` |
+
+Documents are complete: a field nobody filled in has its schema default, so your code always sees the full shape. For MDX entries the body is in the markdown field.
+
+### Singletons and file sets
+
+```ts
+await reader.singletons.home.read();                       // the document, or null if never saved
+await reader.fileSets.messages.files();                    // ["nav", "footer"]
+await reader.fileSets.messages.read("nav", { locale: "de" });
+```
+
+## Languages
+
+`read` takes a `locale`. For another language the reader overlays the translation on the default language's document:
+
+- translated values win, empty ones fall back to the default language, so the result is always a complete document;
+- lists and blocks line up **by position**, so a translated item that only carries some fields (a gallery's `alt`) is merged into the default item at the same index;
+- `{ fallback: false }` returns only the translation's own fields.
+
+```ts
+const en = await reader.collections.items.read("lamp", { locale: "en" });
+// { title: "Lamp" (translated), price: "10" (from the default language), links: [...] }
+```
+
+<Callout>
+Reading from GitHub is the other half of keeping content in a separate repository: the panel writes there (`repo` in [the configuration](/docs/configuration)), your site reads from there, and a build hook on that repository republishes the site. See [deploying](/docs/deploying).
+</Callout>

@@ -15,4 +15,6 @@
 - Media library (list/delete on adapters, Media tab, picker in image fields).
 - Optional pull-request workflow with a Review tab.
 - Sidebar areas (Content / Media / Review) and automatic Collections / Singletons / File sets sections.
+- Reader API (`@czayelements/zaystatic/reader`): `createReader` and `createGitHubReader`, language-aware.
+- `repo.pathPrefix` / `ZAY_PATH_PREFIX`: content inside a sub-folder of the repository.
 - Adapters: Next.js, Node `http`/Express, any fetch-style runtime.

@@ -11,7 +11,7 @@ const shared = {
 };
 
 export default defineConfig([
-  { ...shared, entry: { index: "src/index.ts", next: "src/next/index.ts", node: "src/node/index.ts" }, platform: "node", clean: false },
+  { ...shared, entry: { index: "src/index.ts", next: "src/next/index.ts", node: "src/node/index.ts", reader: "src/reader/index.ts" }, platform: "node", clean: false },
   {
     ...shared,
     entry: { ui: "src/ui/index.ts" },

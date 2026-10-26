@@ -13,6 +13,7 @@
       "pages": [
         "configuration",
         "content-model",
+        "reading-content",
         "field-types",
         "translating-content",
         "validation"

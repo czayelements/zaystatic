@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 
@@ -19,7 +20,7 @@ export async function startFakeGithub(initial: Files) {
   const log: string[] = [];
 
   const filesOf = (branch: string) => commits[branches[branch]!]!.files;
-  const sha = (s: string) => `sha-${Buffer.from(s).toString("hex").slice(0, 10)}`;
+  const sha = (s: string) => `sha-${createHash("sha1").update(s).digest("hex")}`; /* content-addressed like real Git: different content, different sha */
 
   const server = createServer(async (req, res) => {
     const url = new URL(req.url!, "http://x");

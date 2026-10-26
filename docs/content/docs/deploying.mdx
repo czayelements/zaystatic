@@ -25,6 +25,10 @@ Both run Next.js route handlers as functions. Two things to remember:
 - **Request size.** Image uploads pass through the function, and function request bodies are limited to about 6 MB. The default `maxBytes` of 5 MB stays under it.
 - **Previews.** If you use [the draft workflow](/docs/draft-workflow), the platform's deploy previews give you a `previewUrl` for every draft.
 
+## Content in a separate repository
+
+Point `repo` at the content repository: the panel edits it, and you read it from the site with [the reader](/docs/reading-content). The site's own deployment is not triggered by commits to another repository, so add a webhook on the content repository (GitHub, Settings, Webhooks) that calls your host's build hook (Netlify: Site configuration, Build hooks) on every push.
+
 ## Behind a proxy
 
 If a proxy hides the public origin, set `ZAY_PUBLIC_URL` so the sign-in redirect uses the right address.
