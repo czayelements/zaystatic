@@ -1,4 +1,4 @@
-import { defineConfig, repoMedia } from "zaystatic";
+import { defineConfig, repoMedia } from "@czayelements/zaystatic";
 
 import schema from "./zaystatic.schema";
 
@@ -9,7 +9,7 @@ export default defineConfig({
   locales: ["en"],
   defaultLocale: "en",
   language: "en",
-  repo: { owner: "czaydev", name: "zaystatic", branch: "main" },
+  repo: { owner: "czayelements", name: "zaystatic", branch: "main" },
   media: { adapter: repoMedia({ dir: "docs/public/uploads", urlPrefix: "/uploads" }) },
   schema,
 });

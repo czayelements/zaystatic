@@ -35,7 +35,7 @@ https://your-site.com/api/cms/auth/callback
 | --- | --- |
 | `ZAY_GITHUB_CLIENT_ID` | the OAuth App's client ID |
 | `ZAY_GITHUB_CLIENT_SECRET` | the client secret |
-| `ZAY_SESSION_SECRET` | a long random string, for example `openssl rand -base64 48` |
+| `ZAY_SESSION_SECRET` | a long random string of **at least 32 characters**, for example `openssl rand -base64 48`. Shorter secrets keep the panel closed. |
 | `ZAY_ALLOWED_USERS` | GitHub logins that may sign in, comma-separated |
 
 ### Sign in

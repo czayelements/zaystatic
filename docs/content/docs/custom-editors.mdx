@@ -6,7 +6,7 @@ The standard form works for any schema, but your data may deserve a better view:
 
 ```tsx
 "use client";
-import { ZayApp } from "zaystatic/ui";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 import { RoadmapEditor } from "./roadmap-editor";
 import { ColorWidget } from "./color-widget";
 
@@ -44,7 +44,7 @@ With translated content the panel shows the language tabs above your editor and 
 
 ### Building blocks
 
-Build your editor from the panel's own parts, all exported from `zaystatic/ui`:
+Build your editor from the panel's own parts, all exported from `@czayelements/zaystatic/ui`:
 
 - `PanelForm`: the schema-driven form (lists, blocks, drag and drop, validation) for any `fields`. Render *part* of a document your own way and hand the rest to the standard form.
 - `ImageInput` and `MediaLibrary`: the upload, link and library picker.
@@ -62,7 +62,7 @@ colour: str("Colour", { widget: "color" })
 ```
 
 ```tsx
-import type { WidgetProps } from "zaystatic/ui";
+import type { WidgetProps } from "@czayelements/zaystatic/ui";
 
 export function ColorWidget({ value, onChange }: WidgetProps) {
   return <input type="color" value={String(value || "#000000")} onChange={(e) => onChange(e.target.value)} />;

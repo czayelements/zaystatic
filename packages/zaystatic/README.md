@@ -1,5 +1,8 @@
 # zaystatic
 
+> [!WARNING]
+> **Under development.** zaystatic is an early alpha (`0.1.0-alpha`). It is not production-ready: the public API may change without notice, and the GitHub sign-in, the pull-request workflow and the S3/R2 storage have so far been tested against fake servers and local setups, not yet against real services. Try it, break it and [open an issue](https://github.com/czayelements/zaystatic/issues), but do not put it in front of a site you cannot afford to break.
+
 A small, Git-based content panel. Your content stays as plain files in your
 repository; zaystatic gives editors a polished panel to change it and commits
 straight to your branch. No database, no hosted service, no lock-in: stop using
@@ -34,13 +37,13 @@ it tomorrow and your content is still just JSON and Markdown.
 ```
 
 Your site reads the same files at build time with whatever it likes; the field
-definitions are plain ESM (`zaystatic/schema`) so a Node build script can import
+definitions are plain ESM (`@czayelements/zaystatic/schema`) so a Node build script can import
 the very same schema the panel uses.
 
 ## Install
 
 ```bash
-npm install zaystatic        # or pnpm add / yarn add
+npm install @czayelements/zaystatic        # or pnpm add / yarn add
 ```
 
 Requires Node 20+. The UI needs React 19 (peer dependency).
@@ -56,8 +59,8 @@ zaystatic is configured by two files in your project:
 
 ```ts
 // zay.schema.ts
-import { defineSchema, defineCollection, defineSingleton } from "zaystatic";
-import { str, image, markdown, select, blocks, block } from "zaystatic/schema";
+import { defineSchema, defineCollection, defineSingleton } from "@czayelements/zaystatic";
+import { str, image, markdown, select, blocks, block } from "@czayelements/zaystatic/schema";
 
 export default defineSchema({
   groups: [{ id: "content", label: "Content" }, { id: "site", label: "Site" }],
@@ -95,7 +98,7 @@ export default defineSchema({
 
 ```ts
 // zay.config.ts
-import { defineConfig, repoMedia, s3MediaFromEnv } from "zaystatic";
+import { defineConfig, repoMedia, s3MediaFromEnv } from "@czayelements/zaystatic";
 import schema from "./zay.schema";
 
 export default defineConfig({
@@ -117,7 +120,7 @@ export default defineConfig({
 
 ```ts
 // app/api/cms/[...path]/route.ts
-import { createNextHandlers } from "zaystatic/next";
+import { createNextHandlers } from "@czayelements/zaystatic/next";
 import config from "@/zay.config";
 
 export const runtime = "nodejs";
@@ -129,7 +132,7 @@ export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
 
 ```tsx
 // app/cms/layout.tsx  (own root layout: no site chrome)
-import "zaystatic/styles.css";
+import "@czayelements/zaystatic/styles.css";
 export default ({ children }: { children: React.ReactNode }) => (
   <html lang="en"><body style={{ margin: 0 }}>{children}</body></html>
 );
@@ -140,7 +143,7 @@ export default () => <Panel />;
 
 // app/cms/panel.tsx
 "use client";
-import { ZayApp } from "zaystatic/ui";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 export const Panel = () => <ZayApp apiPath="/api/cms" />;
 ```
 
@@ -157,7 +160,7 @@ The server side is `createHandler(config): (request: Request) => Promise<Respons
 standard fetch-style function, so any runtime that speaks Web `Request`/`Response` can host it:
 
 ```ts
-import { createHandler } from "zaystatic";
+import { createHandler } from "@czayelements/zaystatic";
 const handle = createHandler(config);
 
 // Hono
@@ -171,14 +174,14 @@ export const GET = ({ request }) => handle(request); // …POST, PUT, DELETE the
 For Node's `http` and Express there is an adapter:
 
 ```ts
-import { createNodeHandler } from "zaystatic/node";
+import { createNodeHandler } from "@czayelements/zaystatic/node";
 app.use("/api/cms", createNodeHandler(config));            // Express
 http.createServer(createNodeHandler(config)).listen(3000);  // plain Node
 ```
 
-The UI (`zaystatic/ui`) is a React component and runs in any React 19 app: Next.js,
+The UI (`@czayelements/zaystatic/ui`) is a React component and runs in any React 19 app: Next.js,
 Vite, React Router/Remix, Astro islands. It only needs the API path and the stylesheet
-(`zaystatic/styles.css`). The server needs a Node-compatible runtime for `node:crypto`
+(`@czayelements/zaystatic/styles.css`). The server needs a Node-compatible runtime for `node:crypto`
 (sessions, request signing); fs mode needs a real file system.
 
 ## Content model
@@ -236,7 +239,7 @@ Options common to all: `hint`, `default`, `required` and the other [validation](
 field in the default language (add, remove, move, duplicate) are mirrored into the translations,
 which stay position-aligned.
 
-`normalize(field, raw)` (from `zaystatic/schema`) fills defaults the same way the panel does, so
+`normalize(field, raw)` (from `@czayelements/zaystatic/schema`) fills defaults the same way the panel does, so
 your build can read files that only contain the fields someone filled in.
 
 ## Draft workflow (pull requests)
@@ -316,7 +319,7 @@ treat as "not translated yet".
 ## Images
 
 ```ts
-import { defineConfig, s3Media, s3MediaFromEnv, repoMedia } from "zaystatic";
+import { defineConfig, s3Media, s3MediaFromEnv, repoMedia } from "@czayelements/zaystatic";
 
 defineConfig({
   // …
@@ -352,7 +355,7 @@ platform's request-body limit applies (about 6 MB on Netlify and Vercel function
 | --- | --- |
 | `ZAY_MODE` | `local` (disk, no sign-in: your own machine only) or `github`. Unset: `local` in development, `github` in production. |
 | `ZAY_GITHUB_CLIENT_ID`, `ZAY_GITHUB_CLIENT_SECRET` | a GitHub OAuth App; callback URL `https://<host><apiPath>/auth/callback` |
-| `ZAY_SESSION_SECRET` | long random string; seals the session cookie |
+| `ZAY_SESSION_SECRET` | long random string (at least 32 characters); seals the session cookie |
 | `ZAY_ALLOWED_USERS` | comma-separated GitHub logins allowed in (they also need push access to the repo) |
 | `ZAY_PUBLIC_URL` | optional; the public origin when a proxy hides it |
 | `ZAY_BRANCH` | optional; read from and commit to this branch instead of `repo.branch` (try the panel on a test branch) |
@@ -369,7 +372,7 @@ drafts, language tabs and image uploads. Two extension points, both plain React 
 
 ```tsx
 "use client";
-import { ZayApp } from "zaystatic/ui";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 import { RoadmapEditor } from "./roadmap-editor";
 import { ColorWidget } from "./color-widget";
 
@@ -405,7 +408,7 @@ An editor receives `EditorProps`:
 With translated content the panel shows the language tabs above your editor and passes the active language's document
 (`languages: "tabs"`, the default); use `languages: "self"` to get all documents and manage languages yourself.
 
-Build your editor from the panel's own parts, all exported from `zaystatic/ui`:
+Build your editor from the panel's own parts, all exported from `@czayelements/zaystatic/ui`:
 
 - `PanelForm` — the schema-driven form (lists, blocks, drag and drop, validation) for any `fields`, so you can render
   *part* of a document your own way and hand the rest to the standard form;
@@ -433,7 +436,7 @@ For content made of `blocks` (landing pages, long articles with typed sections) 
 You supply only how each block *looks*; the canvas, the palette and the settings are built in:
 
 ```tsx
-import { ZayApp, createBlockBuilder } from "zaystatic/ui";
+import { ZayApp, createBlockBuilder } from "@czayelements/zaystatic/ui";
 import { HeroPreview, FeaturesPreview } from "./block-previews"; // your site's own components
 
 const PageBuilder = createBlockBuilder({
@@ -483,7 +486,7 @@ Custom editors are loaded by your code, so keep heavy ones lazy (`next/dynamic`)
 - Uploads are checked by magic bytes; SVG is opt-in and screened for scripts.
 - No rate limiting or audit log of its own: rely on Git history and your host.
 
-Please report vulnerabilities privately (see [CONTRIBUTING.md](../../CONTRIBUTING.md)).
+Please report vulnerabilities privately (see [SECURITY.md](../../SECURITY.md)).
 
 ## HTTP API
 
@@ -507,12 +510,12 @@ All paths are relative to `apiPath`; bodies are JSON unless noted.
 
 | import | contents |
 | --- | --- |
-| `zaystatic` | `defineConfig`, `defineSchema`, `defineCollection`, `defineSingleton`, `defineFileSet`, `createHandler`, `resolveConfig`, `s3Media`, `s3MediaFromEnv`, `repoMedia`, types |
-| `zaystatic/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
-| `zaystatic/next` | `createNextHandlers` |
-| `zaystatic/node` | `createNodeHandler` |
-| `zaystatic/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
-| `zaystatic/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
+| `@czayelements/zaystatic` | `defineConfig`, `defineSchema`, `defineCollection`, `defineSingleton`, `defineFileSet`, `createHandler`, `resolveConfig`, `s3Media`, `s3MediaFromEnv`, `repoMedia`, types |
+| `@czayelements/zaystatic/schema` | field helpers (`str`, `text`, `markdown`, `image`, `int`, `bool`, `select`, `date`, `datetime`, `relation`, `relations`, `list`, `obj`, `block`, `blocks`), `normalize`, `translatableFields`, `isEmptyValue` |
+| `@czayelements/zaystatic/next` | `createNextHandlers` |
+| `@czayelements/zaystatic/node` | `createNodeHandler` |
+| `@czayelements/zaystatic/ui` | `ZayApp`, `PanelForm`, `ImageInput`, `MediaLibrary`, `useZay`, `LocaleTabs`, `Modal`, `Link`, types `EditorProps`, `WidgetProps` |
+| `@czayelements/zaystatic/styles.css` | the panel's stylesheet (every class is `zs-` prefixed; override `--zs-*` variables to theme) |
 
 ## Limitations
 
@@ -540,4 +543,4 @@ vector), uploads, and the Node adapter. See [CONTRIBUTING.md](../../CONTRIBUTING
 
 ## License
 
-Not chosen yet. Add a `LICENSE` file before publishing.
+[MIT](LICENSE)

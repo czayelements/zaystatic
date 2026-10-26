@@ -807,3 +807,23 @@ kbd {
     padding-top: 56px;
   }
 }
+
+.dev-banner {
+  padding: 8px 16px;
+  background: #fff4d6;
+  border-bottom: 1px solid #ecd9a0;
+  color: #5c4a10;
+  font-size: 13.5px;
+  text-align: center;
+}
+.dev-banner a {
+  color: inherit;
+  font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  .dev-banner {
+    background: #2b2410;
+    border-bottom-color: #4a3d16;
+    color: #f0dc9a;
+  }
+}

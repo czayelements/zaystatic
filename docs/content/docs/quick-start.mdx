@@ -9,7 +9,7 @@ This guide adds the panel to a Next.js (App Router) project. Other runtimes are 
 ### Install
 
 ```bash
-npm install zaystatic
+npm install @czayelements/zaystatic
 ```
 
 zaystatic needs Node 20 or newer and React 19 (a peer dependency).
@@ -19,8 +19,8 @@ zaystatic needs Node 20 or newer and React 19 (a peer dependency).
 Create `zaystatic.schema.ts` in the project root. It lists which kinds of content exist and what fields they have:
 
 ```ts
-import { defineSchema, defineCollection } from "zaystatic";
-import { str, markdown, image, select } from "zaystatic/schema";
+import { defineSchema, defineCollection } from "@czayelements/zaystatic";
+import { str, markdown, image, select } from "@czayelements/zaystatic/schema";
 
 export default defineSchema({
   collections: {
@@ -48,7 +48,7 @@ export default defineSchema({
 Create `zaystatic.config.ts`:
 
 ```ts
-import { defineConfig, repoMedia } from "zaystatic";
+import { defineConfig, repoMedia } from "@czayelements/zaystatic";
 import schema from "./zaystatic.schema";
 
 export default defineConfig({
@@ -68,7 +68,7 @@ export default defineConfig({
 `app/api/cms/[...path]/route.ts`:
 
 ```ts
-import { createNextHandlers } from "zaystatic/next";
+import { createNextHandlers } from "@czayelements/zaystatic/next";
 import config from "@/zaystatic.config";
 
 export const runtime = "nodejs";
@@ -82,7 +82,7 @@ The panel has its own root layout, so it does not inherit your site's header or 
 
 ```tsx
 // app/cms/layout.tsx
-import "zaystatic/styles.css";
+import "@czayelements/zaystatic/styles.css";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -96,7 +96,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 ```tsx
 // app/cms/panel.tsx
 "use client";
-import { ZayApp } from "zaystatic/ui";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 
 export const Panel = () => <ZayApp apiPath="/api/cms" />;
 ```

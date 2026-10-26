@@ -4,7 +4,7 @@ The documentation and promo site of zaystatic, in the same repository as the pac
 
 ```bash
 pnpm install                 # from the repo root
-pnpm --filter zaystatic build
+pnpm --filter @czayelements/zaystatic build
 pnpm dev:docs                # http://localhost:3100
 ```
 

@@ -4,11 +4,11 @@
   "description": "zaystatic: a Git-based content panel. The npm package lives in packages/zaystatic, the documentation and promo site in docs/.",
   "packageManager": "pnpm@10.33.2",
   "scripts": {
-    "build": "pnpm --filter zaystatic build",
-    "test": "pnpm --filter zaystatic test",
-    "typecheck": "pnpm --filter zaystatic typecheck && pnpm --filter zaystatic-docs typecheck",
-    "dev:package": "pnpm --filter zaystatic dev",
+    "build": "pnpm --filter @czayelements/zaystatic build",
+    "test": "pnpm --filter @czayelements/zaystatic test",
+    "typecheck": "pnpm --filter @czayelements/zaystatic typecheck && pnpm --filter zaystatic-docs typecheck",
+    "dev:package": "pnpm --filter @czayelements/zaystatic dev",
     "dev:docs": "pnpm --filter zaystatic-docs dev",
-    "build:docs": "pnpm --filter zaystatic build && pnpm --filter zaystatic-docs build"
+    "build:docs": "pnpm --filter @czayelements/zaystatic build && pnpm --filter zaystatic-docs build"
   }
 }

@@ -1,5 +1,5 @@
-import { defineCollection, defineSchema, defineSingleton } from "zaystatic";
-import { list, markdown, obj, relation, str, text } from "zaystatic/schema";
+import { defineCollection, defineSchema, defineSingleton } from "@czayelements/zaystatic";
+import { list, markdown, obj, relation, str, text } from "@czayelements/zaystatic/schema";
 
 /**
  * The content model of this very site. The documentation is edited with zaystatic itself

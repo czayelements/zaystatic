@@ -6,9 +6,11 @@ import { createHandler } from "../src/core/api";
 import { newSession, seal } from "../src/core/auth";
 import { branchFor, targetOf } from "../src/core/workflow";
 import { config } from "./helpers";
+
+const SECRET = "zaystatic-test-session-secret-0123456789abcdef";
 import { startFakeGithub } from "./fake-github";
 
-const ENV = { ZAY_MODE: "github", ZAY_GITHUB_CLIENT_ID: "i", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: "secret", ZAY_ALLOWED_USERS: "me" };
+const ENV = { ZAY_MODE: "github", ZAY_GITHUB_CLIENT_ID: "i", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: SECRET, ZAY_ALLOWED_USERS: "me" };
 const saved: Record<string, string | undefined> = {};
 before(() => {
   for (const [k, v] of Object.entries(ENV)) {
@@ -23,7 +25,7 @@ after(() => {
   }
 });
 
-const cookie = `zay_session=${encodeURIComponent(seal(newSession({ login: "me" }, "tok"), "secret"))}`;
+const cookie = `zay_session=${encodeURIComponent(seal(newSession({ login: "me" }, "tok"), SECRET))}`;
 
 const setup = async (workflow: "direct" | "pull-request" = "pull-request") => {
   const gh = await startFakeGithub({});

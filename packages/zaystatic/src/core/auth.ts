@@ -1,9 +1,12 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 
 import type { ResolvedConfig, ZayConfig } from "./types";
 
 export type Session = { login: string; name?: string; avatar?: string; token: string; exp: number };
 export type Mode = "local" | "github" | "unconfigured";
+
+/** ZAY_SESSION_SECRET must be at least this long: a short secret could be guessed offline from a stolen cookie. */
+export const MIN_SECRET = 32;
 
 export const SESSION_COOKIE = "zay_session";
 export const STATE_COOKIE = "zay_oauth_state";
@@ -34,7 +37,7 @@ export function resolveMode(config: ZayConfig, env: Env = process.env): Mode {
   const forced = env.ZAY_MODE;
   if (forced === "local") return "local";
   const o = oauthEnv(env);
-  const ready = Boolean(o.clientId && o.clientSecret && o.sessionSecret && o.allowed.length && config.repo);
+  const ready = Boolean(o.clientId && o.clientSecret && o.sessionSecret && o.sessionSecret.length >= MIN_SECRET && o.allowed.length && config.repo);
   if (forced === "github") return ready ? "github" : "unconfigured";
   if (env.NODE_ENV !== "production") return "local";
   return ready ? "github" : "unconfigured";
@@ -42,7 +45,8 @@ export function resolveMode(config: ZayConfig, env: Env = process.env): Mode {
 
 /* ── Cookie: session sealed with AES-256-GCM ──────────────────── */
 
-const key = (secret: string) => createHash("sha256").update(`zaystatic:${secret}`).digest();
+/** AES key from the session secret (HKDF-SHA256); the secret is required to be long and random (see MIN_SECRET). */
+const key = (secret: string) => Buffer.from(hkdfSync("sha256", secret, "zaystatic/session-salt", "zaystatic session cookie v1", 32));
 
 export function seal(session: Session, secret: string): string {
   const iv = randomBytes(12);

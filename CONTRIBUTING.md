@@ -31,5 +31,4 @@ When you change behaviour, update the matching page under `docs/content/docs/` t
 
 ## Reporting security issues
 
-Please do not open a public issue. Email the maintainer (see `package.json`) or use GitHub's
-private vulnerability reporting once the repository is public.
+Please do not open a public issue; see [SECURITY.md](SECURITY.md) (GitHub private vulnerability reporting).

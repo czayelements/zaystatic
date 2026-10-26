@@ -2,7 +2,7 @@
 title: "Field types"
 description: "Every field type, its editor in the panel and how it is stored: text, markdown, images, selects, relations, lists, objects and blocks."
 ---
-Every field has a type, and every type has its own editor in the panel. Import the helpers from `zaystatic/schema`.
+Every field has a type, and every type has its own editor in the panel. Import the helpers from `@czayelements/zaystatic/schema`.
 
 | Type | Helper | Editor | Stored as |
 | --- | --- | --- | --- |
@@ -72,7 +72,7 @@ tags: list("Tags", str("Tag")),
 Blocks are a list of items of different types. Each item remembers its type in `_type`:
 
 ```ts
-import { blocks, block } from "zaystatic/schema";
+import { blocks, block } from "@czayelements/zaystatic/schema";
 
 sections: blocks("Sections", {
   hero: block("Hero", { title: str("Title"), image: image("Image") }, { icon: "H", description: "Big headline" }),

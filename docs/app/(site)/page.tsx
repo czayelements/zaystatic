@@ -4,8 +4,8 @@ import { CopyButton } from "@/components/copy-button";
 import { home } from "@/lib/content";
 import { site } from "@/site.config";
 
-const SCHEMA = `import { defineSchema, defineCollection } from "zaystatic";
-import { str, markdown, image, select } from "zaystatic/schema";
+const SCHEMA = `import { defineSchema, defineCollection } from "@czayelements/zaystatic";
+import { str, markdown, image, select } from "@czayelements/zaystatic/schema";
 
 export default defineSchema({
   collections: {
@@ -29,14 +29,14 @@ export default defineSchema({
 });`;
 
 const MOUNT = `// app/api/cms/[...path]/route.ts
-import { createNextHandlers } from "zaystatic/next";
+import { createNextHandlers } from "@czayelements/zaystatic/next";
 import config from "@/zaystatic.config";
 
 export const { GET, POST, PUT, DELETE } = createNextHandlers(config);
 
 // app/cms/panel.tsx
 "use client";
-import { ZayApp } from "zaystatic/ui";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 export const Panel = () => <ZayApp apiPath="/api/cms" />;`;
 
 export default function Landing() {
@@ -44,7 +44,7 @@ export default function Landing() {
   return (
     <main>
       <section className="hero wrap">
-        <span className="pill">Open source · Git-based · No database</span>
+        <span className="pill">Alpha · Under development · Open source</span>
         <h1>{content.title || "A content panel for your repository"}</h1>
         <p>{content.subtitle || site.description}</p>
         <div className="cta-row">

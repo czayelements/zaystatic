@@ -26,7 +26,7 @@ packages/zaystatic/           the npm package (paths below are relative to it)
   schema/dsl.mjs, dsl.d.mts   Field helpers (str, text, markdown, image, int, bool, select, date, datetime,
                               relation(s), list, obj, block/blocks), normalize(), translatableFields(),
                               fieldsFromSample(), isEmptyValue(), validateDoc(). PLAIN ESM on purpose:
-                              user build scripts import it as "zaystatic/schema".
+                              user build scripts import it as "@czayelements/zaystatic/schema".
   core/types.ts               Config/Schema/Collection/Singleton/FileSet/Store types, defineX helpers,
                               resolveConfig(), HttpError.
   core/translation.ts         i18n setting: isI18n(), translatableOf() (explicit paths, markers, text-field default).
@@ -79,14 +79,8 @@ pnpm build:docs       # build package, then the site
 7. **English only** in code, comments, errors, docs. UI strings go through `ui/locales/*.ts` (add a key to `en.ts`;
    every bundled language must define all keys, enforced by the i18n test).
 
-### How the czay.dev project consumes this package
-The package lives in the monorepo at `~/Documents/projects/zaystatic/packages/zaystatic`. The czay.dev site (`~/Documents/czaydev`,
-branch `feat/zay-static-package`) installs it as `"zaystatic": "file:../projects/zaystatic/packages/zaystatic"` (a copy, because Turbopack
-cannot resolve a symlink outside the project root). After changing the package run `pnpm zay:sync` in the site (builds the
-package and reinstalls). The site's `zay.config.ts` holds settings, `zay.schema.ts` the content model (fields are
-defined in `scripts/content/schema.mjs` because the site build reads the same definitions).
-**Deploy blocker:** Netlify cannot see the `file:` path. Before merging that branch, publish the package (npm or a GitHub
-repo) and change the dependency spec. `main` of the site still has the older in-repo copy and deploys fine.
+### Consumers
+The package is developed in this monorepo and consumed through the published npm package `@czayelements/zaystatic`. The documentation site in `docs/` uses it through the pnpm workspace (`workspace:*`), so build the package before running the site. Other sites install it from npm like any dependency.
 
 ### Verified vs. not verified (be honest in reviews)
 - Verified by automated tests: content engine, validation, HTTP handler (CSRF, modes), session sealing, GitHub store and the
@@ -141,7 +135,7 @@ Ordered by value. Each item says where to start and what "done" means.
 2. **Pull-request workflow in the browser.** Run with the fake GitHub (see `test/fake-github.ts`; expose it as a small dev
    script, e.g. `pnpm dev:fake-github`, plus a demo config) and drive the UI: save -> chip appears -> Publish/Discard -> Review
    page -> sidebar badge. Add a browser test (see D) or at least a documented manual script. Then repeat against real GitHub.
-3. **S3/R2.** Upload, list, delete against a real bucket (R2 is what czay.dev uses). Check path-style vs virtual-hosted,
+3. **S3/R2.** Upload, list, delete against a real bucket (Cloudflare R2 is a good one to try). Check path-style vs virtual-hosted,
    `region: "auto"`, public URL, `Cache-Control`.
 
 ### B. Features
@@ -189,7 +183,6 @@ Ordered by value. Each item says where to start and what "done" means.
 - Pick a licence and add `LICENSE`; fill `package.json` (author, repository, bugs, homepage, `files`, `sideEffects`).
 - Set up CI (typecheck, test, build) and a security contact; enable GitHub private vulnerability reporting.
 - `npm publish --provenance`; tag 0.1.0; write the first real CHANGELOG entry.
-- Then switch the czay.dev site from `file:` to the published version and merge `feat/zay-static-package`.
 
 ---
 

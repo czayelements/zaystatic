@@ -13,8 +13,8 @@ The content model says which kinds of content exist and which fields they have. 
 | File set | `defineFileSet` | the same JSON shape in every language | UI strings such as `messages/en/nav.json` |
 
 ```ts
-import { defineSchema, defineCollection, defineSingleton } from "zaystatic";
-import { str, text, markdown, list, obj } from "zaystatic/schema";
+import { defineSchema, defineCollection, defineSingleton } from "@czayelements/zaystatic";
+import { str, text, markdown, list, obj } from "@czayelements/zaystatic/schema";
 
 export default defineSchema({
   groups: [{ id: "content", label: "Content" }],
@@ -87,7 +87,7 @@ fileSets: {
 The files are ordinary JSON and Markdown, so read them any way you like. When you want the same defaults the panel uses, import the helpers; they are plain ESM, so a Node build script can use them too:
 
 ```ts
-import { normalize, obj } from "zaystatic/schema";
+import { normalize, obj } from "@czayelements/zaystatic/schema";
 
 const post = normalize(obj("", schema.collections.posts.fields), rawFileContents);
 ```

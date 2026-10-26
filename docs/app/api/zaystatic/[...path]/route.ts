@@ -1,4 +1,4 @@
-import { createNextHandlers } from "zaystatic/next";
+import { createNextHandlers } from "@czayelements/zaystatic/next";
 
 import config from "@/zaystatic.config";
 

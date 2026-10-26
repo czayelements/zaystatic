@@ -4,7 +4,7 @@
 
 - Content translation is an `i18n: { enabled, fields }` setting on collections and singletons (replaces the `layout` option; `layout: "locales"` still works).
 - Visual block builder (`createBlockBuilder`): canvas drawn by your own block previews, palette to drag blocks in, settings of the selected block, translation-aware.
-- Generic extensibility: `editors` (several custom editors per collection or singleton, language-aware) and per-field `widget`s, both registered by name in `<ZayApp>`; panel parts exported from `zaystatic/ui`.
+- Generic extensibility: `editors` (several custom editors per collection or singleton, language-aware) and per-field `widget`s, both registered by name in `<ZayApp>`; panel parts exported from `@czayelements/zaystatic/ui`.
 - Schema DSL with typed fields, blocks, per-locale files, file sets.
 - Panel: language tabs, drag-and-drop lists, image upload (S3-compatible or repo), custom editors.
 - Stores: local files and GitHub (one commit per save, fast-forward only).

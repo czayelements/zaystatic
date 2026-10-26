@@ -14,6 +14,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
+        <div className="dev-banner">
+          <b>Under development.</b> zaystatic is an early alpha: the API may change and it is not production-ready yet.{" "}
+          <a href="/docs/roadmap">What is verified and what is not</a>
+        </div>
         <Header />
         {children}
         <Footer />

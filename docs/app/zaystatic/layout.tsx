@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import "zaystatic/styles.css";
+import "@czayelements/zaystatic/styles.css";
 
 export const metadata: Metadata = { title: "zaystatic docs · panel", robots: { index: false, follow: false } };
 

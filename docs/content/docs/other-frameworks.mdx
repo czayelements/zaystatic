@@ -5,7 +5,7 @@ description: "Run the zaystatic server on Node, Express, Hono, SvelteKit, Astro 
 The server side of zaystatic is one function:
 
 ```ts
-import { createHandler } from "zaystatic";
+import { createHandler } from "@czayelements/zaystatic";
 
 const handle = createHandler(config); // (request: Request) => Promise<Response>
 ```
@@ -15,7 +15,7 @@ Any runtime that speaks the Web `Request` and `Response` types can host it.
 ## Node and Express
 
 ```ts
-import { createNodeHandler } from "zaystatic/node";
+import { createNodeHandler } from "@czayelements/zaystatic/node";
 
 app.use("/api/cms", createNodeHandler(config));              // Express
 http.createServer(createNodeHandler(config)).listen(3000);    // plain Node
@@ -45,8 +45,8 @@ A Node-compatible runtime for `node:crypto` (sessions, request signing). Local m
 The panel is a React component and needs only the API path and the stylesheet:
 
 ```tsx
-import "zaystatic/styles.css";
-import { ZayApp } from "zaystatic/ui";
+import "@czayelements/zaystatic/styles.css";
+import { ZayApp } from "@czayelements/zaystatic/ui";
 
 export const Panel = () => <ZayApp apiPath="/api/cms" />;
 ```

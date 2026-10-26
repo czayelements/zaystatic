@@ -5,7 +5,7 @@ description: "Every setting of zaystatic.config.ts: name, locales, paths, reposi
 Settings live in `zaystatic.config.ts`; the content model lives in [`zaystatic.schema.ts`](/docs/content-model). Keeping them apart is a convention: pass the schema to the settings with `schema`.
 
 ```ts
-import { defineConfig, repoMedia } from "zaystatic";
+import { defineConfig, repoMedia } from "@czayelements/zaystatic";
 import schema from "./zaystatic.schema";
 
 export default defineConfig({
@@ -49,7 +49,7 @@ Secrets and the run mode come from the environment, not from the config file.
 | --- | --- |
 | `ZAY_MODE` | `local` (disk, no sign-in, for your own machine) or `github`. Unset: local in development, github in production. |
 | `ZAY_GITHUB_CLIENT_ID`, `ZAY_GITHUB_CLIENT_SECRET` | Your GitHub OAuth App. |
-| `ZAY_SESSION_SECRET` | A long random string that seals the session cookie. |
+| `ZAY_SESSION_SECRET` | A long random string (at least 32 characters) that seals the session cookie. |
 | `ZAY_ALLOWED_USERS` | Comma-separated GitHub logins that may sign in. |
 | `ZAY_PUBLIC_URL` | Optional: the public origin when a proxy hides it. |
 | `ZAY_BRANCH` | Optional: read from and commit to this branch instead of `repo.branch`. Handy for trying the panel on a test branch. |

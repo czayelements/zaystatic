@@ -1,6 +1,6 @@
 {
-  "name": "zaystatic",
-  "version": "0.1.0",
+  "name": "@czayelements/zaystatic",
+  "version": "0.1.0-alpha.1",
   "description": "Git-based content panel for Next.js: schema-driven forms, per-locale files, drag-and-drop lists, image uploads (S3-compatible or repo), commits straight to your repository.",
   "keywords": [
     "cms",
@@ -18,7 +18,8 @@
   ],
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "exports": {
     ".": {
@@ -73,5 +74,22 @@
     "tsup": "^9.0.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Furkan Özay",
+    "url": "https://github.com/czaydev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/czayelements/zaystatic.git",
+    "directory": "packages/zaystatic"
+  },
+  "bugs": {
+    "url": "https://github.com/czayelements/zaystatic/issues"
+  },
+  "homepage": "https://github.com/czayelements/zaystatic#readme",
+  "publishConfig": {
+    "access": "public"
   }
 }

@@ -149,7 +149,7 @@ export function createHandler(input: ZayConfig) {
     }
 
     /* ── Everything below requires an identity ── */
-    if (mode === "unconfigured") throw new HttpError(503, "The panel is not configured (ZAY_* environment variables).");
+    if (mode === "unconfigured") throw new HttpError(503, "The panel is not configured (ZAY_* environment variables; ZAY_SESSION_SECRET needs at least 32 characters).");
     if (mode === "github" && !session) throw new HttpError(401, "Sign-in required");
 
     if (method !== "GET") {

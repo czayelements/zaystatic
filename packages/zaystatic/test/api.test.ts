@@ -6,6 +6,8 @@ import { createHandler } from "../src/core/api";
 import { newSession, resolveMode, seal, unseal } from "../src/core/auth";
 import { config, tmp } from "./helpers";
 
+const SECRET = "zaystatic-test-session-secret-0123456789abcdef";
+
 const call = async (h: (r: Request) => Promise<Response>, method: string, path: string, body?: unknown, headers: Record<string, string> = {}) => {
   const res = await h(new Request(`http://localhost${path}`, { method, headers: { ...headers, ...(body ? { "content-type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined }));
   return { status: res.status, data: (await res.json().catch(() => null)) as Record<string, any> | null, res };
@@ -49,35 +51,35 @@ test("github mode without credentials is closed; production never falls back to 
   assert.equal(resolveMode(cfg, { NODE_ENV: "production" }), "unconfigured");
   assert.equal(resolveMode(cfg, { NODE_ENV: "development" }), "local");
   assert.equal(resolveMode(cfg, { NODE_ENV: "production", ZAY_MODE: "github" }), "unconfigured");
-  const ready = { ZAY_GITHUB_CLIENT_ID: "i", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: "k", ZAY_ALLOWED_USERS: "me" };
+  const ready = { ZAY_GITHUB_CLIENT_ID: "i", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: SECRET, ZAY_ALLOWED_USERS: "me" };
   assert.equal(resolveMode({ ...cfg, repo: { owner: "o", name: "r" } }, { NODE_ENV: "production", ...ready }), "github");
   assert.equal(resolveMode(cfg, { NODE_ENV: "production", ...ready }), "unconfigured"); // no repo
 });
 
 test("session cookie: sealed, tamper-proof, expiring", () => {
   const s = newSession({ login: "me" }, "gh-token");
-  const sealed = seal(s, "secret");
+  const sealed = seal(s, SECRET);
   assert.ok(!sealed.includes("gh-token")); // token is encrypted, not just signed
-  assert.equal(unseal(sealed, "secret")?.login, "me");
+  assert.equal(unseal(sealed, SECRET)?.login, "me");
   assert.equal(unseal(sealed, "other-secret"), null);
-  assert.equal(unseal(sealed.slice(0, -2) + "xx", "secret"), null);
-  assert.equal(unseal(seal({ ...s, exp: Date.now() - 1 }, "secret"), "secret"), null);
-  assert.equal(unseal(undefined, "secret"), null);
+  assert.equal(unseal(sealed.slice(0, -2) + "xx", SECRET), null);
+  assert.equal(unseal(seal({ ...s, exp: Date.now() - 1 }, SECRET), SECRET), null);
+  assert.equal(unseal(undefined, SECRET), null);
 });
 
 test("sign-in redirect uses the request's origin; a blank ZAY_PUBLIC_URL (empty .env line) does not break it", async () => {
   const keys = ["ZAY_MODE", "ZAY_GITHUB_CLIENT_ID", "ZAY_GITHUB_CLIENT_SECRET", "ZAY_SESSION_SECRET", "ZAY_ALLOWED_USERS", "ZAY_PUBLIC_URL"];
   const saved = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
-  Object.assign(process.env, { ZAY_MODE: "github", ZAY_GITHUB_CLIENT_ID: "abc", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: "k", ZAY_ALLOWED_USERS: "me", ZAY_PUBLIC_URL: "" });
+  Object.assign(process.env, { ZAY_MODE: "github", ZAY_GITHUB_CLIENT_ID: "abc", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_SESSION_SECRET: SECRET, ZAY_ALLOWED_USERS: "me", ZAY_PUBLIC_URL: "" });
   try {
     const h = createHandler({ ...config(await tmp()), repo: { owner: "o", name: "r" } });
     const res = await h(new Request("http://localhost:3001/api/zay/auth/login"));
     assert.equal(res.status, 302);
     const target = new URL(res.headers.get("location")!);
     assert.equal(target.searchParams.get("redirect_uri"), "http://localhost:3001/api/zay/auth/callback");
-    process.env.ZAY_PUBLIC_URL = "https://czay.dev/";
+    process.env.ZAY_PUBLIC_URL = "https://example.com/";
     const behind = await h(new Request("http://127.0.0.1:3000/api/zay/auth/login"));
-    assert.equal(new URL(behind.headers.get("location")!).searchParams.get("redirect_uri"), "https://czay.dev/api/zay/auth/callback");
+    assert.equal(new URL(behind.headers.get("location")!).searchParams.get("redirect_uri"), "https://example.com/api/zay/auth/callback");
   } finally {
     for (const k of keys) {
       if (saved[k] === undefined) delete process.env[k];
@@ -100,4 +102,11 @@ test("ZAY_BRANCH points the panel at another branch without touching the config"
     if (before === undefined) delete process.env.ZAY_BRANCH;
     else process.env.ZAY_BRANCH = before;
   }
+});
+
+test("a short ZAY_SESSION_SECRET keeps the panel closed (and the message says why)", async () => {
+  const ok = { ZAY_GITHUB_CLIENT_ID: "i", ZAY_GITHUB_CLIENT_SECRET: "s", ZAY_ALLOWED_USERS: "me" };
+  const cfg = { ...config("/x"), repo: { owner: "o", name: "r" } };
+  assert.equal(resolveMode(cfg, { NODE_ENV: "production", ...ok, ZAY_SESSION_SECRET: "too-short" }), "unconfigured");
+  assert.equal(resolveMode(cfg, { NODE_ENV: "production", ...ok, ZAY_SESSION_SECRET: SECRET }), "github");
 });

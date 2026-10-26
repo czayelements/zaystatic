@@ -1,5 +1,8 @@
 # zaystatic
 
+> [!WARNING]
+> **Under development.** zaystatic is an early alpha (`0.1.0-alpha`). It is not production-ready: the public API may change without notice, and the GitHub sign-in, the pull-request workflow and the S3/R2 storage have so far been tested against fake servers and local setups, not yet against real services. Try it, break it and [open an issue](https://github.com/czayelements/zaystatic/issues), but do not put it in front of a site you cannot afford to break.
+
 A Git-based content panel. Your content stays as plain files in your repository; zaystatic gives editors a polished panel to change it and commits straight to your branch. No database, no hosted service.
 
 - Schema-driven forms, shared with your build
@@ -11,15 +14,13 @@ A Git-based content panel. Your content stays as plain files in your repository;
 
 **[Documentation and examples](docs/)** · **[Package README](packages/zaystatic/README.md)** · [Roadmap](ROADMAP.md) · [Contributing](CONTRIBUTING.md)
 
-> Status: 0.x. The on-disk content format is meant to stay stable; the public API may still change before 1.0.
-
 ## Repository
 
 This is a monorepo, like Keystatic's:
 
 | Path | What |
 | --- | --- |
-| [`packages/zaystatic`](packages/zaystatic) | The npm package `zaystatic` (server, panel UI, schema helpers, tests). |
+| [`packages/zaystatic`](packages/zaystatic) | The npm package `@czayelements/zaystatic` (server, panel UI, schema helpers, tests). |
 | [`docs`](docs) | The documentation and promo site (Next.js). Its pages are edited with zaystatic itself. |
 
 ```bash
@@ -31,4 +32,4 @@ pnpm dev:docs             # docs + promo site on http://localhost:3100 (panel at
 
 ## License
 
-Not chosen yet. Add a `LICENSE` file before publishing.
+[MIT](LICENSE)
