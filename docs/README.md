@@ -18,3 +18,7 @@ pnpm dev:docs                # http://localhost:3100
 ## Deploying
 
 The site is mostly static. The panel and its API route (`/zaystatic`, `/api/zaystatic`) need a Node runtime and stay closed in production unless the `ZAY_*` environment variables are set (see the authentication page of the docs). Edit `site.config.ts` for the repository and npm links.
+
+## Publishing to GitHub Pages
+
+`pnpm build:pages` (from the repo root) writes a static export to `docs/out`. The editing panel and its API need a server, so they are left out of that build. `.github/workflows/pages.yml` runs it on every push to `main` with `NEXT_PUBLIC_BASE_PATH=/zaystatic`.

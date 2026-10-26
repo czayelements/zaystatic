@@ -9,6 +9,7 @@
     "typecheck": "pnpm --filter @czayelements/zaystatic typecheck && pnpm --filter zaystatic-docs typecheck",
     "dev:package": "pnpm --filter @czayelements/zaystatic dev",
     "dev:docs": "pnpm --filter zaystatic-docs dev",
-    "build:docs": "pnpm --filter @czayelements/zaystatic build && pnpm --filter zaystatic-docs build"
+    "build:docs": "pnpm --filter @czayelements/zaystatic build && pnpm --filter zaystatic-docs build",
+    "build:pages": "pnpm --filter @czayelements/zaystatic build && pnpm --filter zaystatic-docs build:pages"
   }
 }

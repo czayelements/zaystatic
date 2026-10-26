@@ -23,7 +23,7 @@ export function Sidebar({ sections }: { sections: NavSection[] }) {
           <div key={s.title} className="sidebar-group">
             <h5>{s.title}</h5>
             {s.pages.map((p) => (
-              <Link key={p.slug} href={`/docs/${p.slug}`} className={path === `/docs/${p.slug}` ? "is-active" : ""}>
+              <Link key={p.slug} href={`/docs/${p.slug}`} className={path.replace(/\/$/, "") === `/docs/${p.slug}` ? "is-active" : ""}>
                 {p.title}
               </Link>
             ))}

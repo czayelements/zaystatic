@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import * as React from "react";
 
+import { withBase } from "@/lib/base";
+
 type Entry = { slug: string; title: string; description: string; headings: { text: string; id: string }[]; text: string };
 type Hit = { href: string; title: string; context: string };
 
@@ -33,7 +35,7 @@ export function Search() {
     setQ("");
     setActive(0);
     window.setTimeout(() => input.current?.focus(), 0);
-    if (!index) fetch("/search.json").then((r) => r.json()).then(setIndex).catch(() => setIndex([]));
+    if (!index) fetch(withBase("/search.json")).then((r) => r.json()).then(setIndex).catch(() => setIndex([]));
   }, [open, index]);
 
   const hits: Hit[] = React.useMemo(() => {

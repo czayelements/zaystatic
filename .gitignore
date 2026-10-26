@@ -4,3 +4,5 @@ dist
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
+out
+.pages-aside

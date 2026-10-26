@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { CopyButton } from "@/components/copy-button";
+import { withBase } from "@/lib/base";
 import { home } from "@/lib/content";
 import { site } from "@/site.config";
 
@@ -66,7 +67,7 @@ export default function Landing() {
             <i />
           </div>
           {/* eslint-disable-next-line @next/next/no-img-element -- a static screenshot */}
-          <img src="/screens/builder.png" alt="The visual page builder: a page drawn by the site's own blocks, with a palette and settings panel on the right." width={1236} height={913} />
+          <img src={withBase("/screens/builder.png")} alt="The visual page builder: a page drawn by the site's own blocks, with a palette and settings panel on the right." width={1236} height={913} />
         </div>
       </section>
 
@@ -136,7 +137,7 @@ export default function Landing() {
               </p>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element -- a static screenshot */}
-            <div className="shot"><img loading="lazy" src="/screens/translate.png" alt="A language tab showing the default-language text under each field." width={1236} height={913} /></div>
+            <div className="shot"><img loading="lazy" src={withBase("/screens/translate.png")} alt="A language tab showing the default-language text under each field." width={1236} height={913} /></div>
           </div>
           <div className="split reverse">
             <div>
@@ -147,7 +148,7 @@ export default function Landing() {
               </p>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element -- a static screenshot */}
-            <div className="shot"><img loading="lazy" src="/screens/lists.png" alt="Sortable lists with collapsible rows." width={1500} height={913} /></div>
+            <div className="shot"><img loading="lazy" src={withBase("/screens/lists.png")} alt="Sortable lists with collapsible rows." width={1500} height={913} /></div>
           </div>
           <div className="split">
             <div>
@@ -158,7 +159,7 @@ export default function Landing() {
               </p>
             </div>
             {/* eslint-disable-next-line @next/next/no-img-element -- a static screenshot */}
-            <div className="shot"><img loading="lazy" src="/screens/panel.png" alt="The panel with its sidebar, tabs and a collection list." width={1500} height={913} /></div>
+            <div className="shot"><img loading="lazy" src={withBase("/screens/panel.png")} alt="The panel with its sidebar, tabs and a collection list." width={1500} height={913} /></div>
           </div>
         </div>
       </section>
