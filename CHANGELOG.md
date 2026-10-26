@@ -1,6 +1,16 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.1.0-alpha.2
+
+- Reader API (`@czayelements/zaystatic/reader`), `repo.pathPrefix` / `ZAY_PATH_PREFIX`, `require()` from CommonJS on Node 22+, `ZAY_BRANCH`.
+- Fix: an empty `ZAY_PUBLIC_URL` no longer breaks the GitHub sign-in redirect.
+- Security: HKDF session key, `ZAY_SESSION_SECRET` must be at least 32 characters.
+
+## 0.1.0-alpha.1
+
+First public alpha.
+
+## Unreleased (planning notes)
 
 - Content translation is an `i18n: { enabled, fields }` setting on collections and singletons (replaces the `layout` option; `layout: "locales"` still works).
 - Visual block builder (`createBlockBuilder`): canvas drawn by your own block previews, palette to drag blocks in, settings of the selected block, translation-aware.
