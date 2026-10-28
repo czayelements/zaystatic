@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@czayelements/zay-ui": "0.1.0-alpha.3",
+    "@czayelements/zay-ui": "0.1.0-alpha.4",
     "@czayelements/zaystatic": "workspace:*",
     "next": "16.4.3",
     "react": "19.2.3",
