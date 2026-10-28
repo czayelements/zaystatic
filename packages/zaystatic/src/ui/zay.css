@@ -2,20 +2,20 @@
    Customise by overriding the --zs-* variables on `.zs-root`. */
 
 .zs-root {
-  --zs-bg: #f6f5f1;
+  --zs-bg: #f4f4f5;
   --zs-surface: #ffffff;
-  --zs-sunken: #efede7;
-  --zs-ink: #1b1d1a;
-  --zs-muted: #6c7067;
-  --zs-line: #e3e1da;
-  --zs-line-strong: #cfccc2;
-  --zs-accent: #4d6a55;
+  --zs-sunken: #efeff1;
+  --zs-ink: #09090b;
+  --zs-muted: #52525b;
+  --zs-line: #ececee;
+  --zs-line-strong: #d4d4d8;
+  --zs-accent: #09090b;
   --zs-accent-ink: #ffffff;
-  --zs-accent-soft: #e4ece5;
-  --zs-danger: #b3382c;
-  --zs-radius: 10px;
-  --zs-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 6px 20px rgb(0 0 0 / 0.05);
-  --zs-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --zs-accent-soft: rgb(9 9 11 / 0.05);
+  --zs-danger: #dc2626;
+  --zs-radius: 0.875rem;
+  --zs-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px rgb(0 0 0 / 0.08);
+  --zs-font: "DM Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --zs-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   min-height: 100vh;
@@ -26,19 +26,38 @@
 }
 @media (prefers-color-scheme: dark) {
   .zs-root {
-    --zs-bg: #121412;
-    --zs-surface: #1a1c19;
-    --zs-sunken: #161815;
-    --zs-ink: #ecece6;
-    --zs-muted: #9a9e93;
-    --zs-line: #2a2d28;
-    --zs-line-strong: #3b3f38;
-    --zs-accent: #8db498;
-    --zs-accent-ink: #11160f;
-    --zs-accent-soft: #232c25;
-    --zs-danger: #e2766b;
-    --zs-shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35);
+    --zs-bg: #09090b;
+    --zs-surface: #131316;
+    --zs-sunken: #18181b;
+    --zs-ink: #fafafa;
+    --zs-muted: #a1a1aa;
+    --zs-line: #222226;
+    --zs-line-strong: #34343a;
+    --zs-accent: #fafafa;
+    --zs-accent-ink: #09090b;
+    --zs-accent-soft: rgb(250 250 250 / 0.08);
+    --zs-danger: #f87171;
+    --zs-shadow: 0 8px 24px rgb(0 0 0 / 0.5);
   }
+}
+/* Opt in with <ZayApp theme="zay-ui" />: the panel wears the host page's zay-ui tokens, light or
+   dark as the host decides. The defaults above are the same zinc and ink palette. */
+.zs-root[data-zs-theme="zay-ui"] {
+  --zs-bg: var(--background);
+  --zs-surface: var(--card);
+  --zs-sunken: var(--muted);
+  --zs-ink: var(--foreground);
+  --zs-muted: var(--muted-foreground);
+  --zs-line: var(--border);
+  --zs-line-strong: var(--border-strong);
+  --zs-accent: var(--brand);
+  --zs-accent-ink: var(--brand-foreground);
+  --zs-accent-soft: var(--brand-soft);
+  --zs-danger: var(--destructive);
+  --zs-radius: var(--radius);
+  --zs-shadow: var(--shadow-md);
+  --zs-font: var(--font-sans);
+  --zs-mono: var(--font-mono);
 }
 .zs-root *,
 .zs-root *::before,
@@ -1323,7 +1342,7 @@
   min-height: 320px;
   padding: 28px;
   background: #fff;
-  color: #1b1d1a;
+  color: #09090b;
   color-scheme: light;
   border: 1px solid var(--zs-line-strong);
   border-radius: 12px;

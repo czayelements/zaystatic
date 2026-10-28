@@ -19,12 +19,17 @@ export type ZayAppProps = {
   editors?: EditorMap;
   /** Your own field widgets: the names used as `widget: "..."` on fields → components. */
   widgets?: WidgetMap;
+  /**
+   * "zay-ui": take colours, radius and fonts from the host page's zay-ui tokens, so the panel
+   * matches the site around it. The default palette is the same zinc and ink look without them.
+   */
+  theme?: "default" | "zay-ui";
 };
 
 const NO_EDITORS: EditorMap = {};
 const NO_WIDGETS: WidgetMap = {};
 
-export function ZayApp({ apiPath, editors = NO_EDITORS, widgets = NO_WIDGETS }: ZayAppProps) {
+export function ZayApp({ apiPath, editors = NO_EDITORS, widgets = NO_WIDGETS, theme = "default" }: ZayAppProps) {
   const api = React.useMemo(() => createApi(apiPath), [apiPath]);
   const [session, setSession] = React.useState<SessionInfo | null>(null);
   /* undefined: loading; null: no schema (sign-in screen / unconfigured) */
@@ -66,12 +71,12 @@ export function ZayApp({ apiPath, editors = NO_EDITORS, widgets = NO_WIDGETS }: 
     };
   }, [api, session, lang]);
 
-  if (error) return <div className="zs-root zs-center zs-error">{error}</div>;
-  if (!session || schema === undefined) return <div className="zs-root zs-center">…</div>;
-  if (!schema) return <SignIn session={session} lang={lang} apiPath={apiPath} />;
+  if (error) return <div className="zs-root zs-center zs-error" data-zs-theme={theme}>{error}</div>;
+  if (!session || schema === undefined) return <div className="zs-root zs-center" data-zs-theme={theme}>…</div>;
+  if (!schema) return <SignIn session={session} lang={lang} apiPath={apiPath} theme={theme} />;
 
   return (
-    <div className="zs-root">
+    <div className="zs-root" data-zs-theme={theme}>
       <ZayProvider api={api} schema={schema} session={session} editors={editors} widgets={widgets} refreshSchema={() => setTick((n) => n + 1)} lang={lang} onLanguage={setLang}>
         <Shell />
       </ZayProvider>
@@ -79,11 +84,11 @@ export function ZayApp({ apiPath, editors = NO_EDITORS, widgets = NO_WIDGETS }: 
   );
 }
 
-function SignIn({ session, lang, apiPath }: { session: SessionInfo; lang: string; apiPath: string }) {
+function SignIn({ session, lang, apiPath, theme }: { session: SessionInfo; lang: string; apiPath: string; theme: "default" | "zay-ui" }) {
   const t = resolveMessages(lang);
   const error = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("error") : null;
   return (
-    <div className="zs-root zs-center">
+    <div className="zs-root zs-center" data-zs-theme={theme}>
       <div className="zs-login">
         <h1>{session.name}</h1>
         {session.mode === "unconfigured" ? (

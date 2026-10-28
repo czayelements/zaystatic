@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The panel's default look is now the zinc and ink palette of zay-ui (DM Sans, 14px corners, black primary action) instead of the sage-green one.
+- New `theme="zay-ui"` prop on `<ZayApp>`: the panel takes its colours, radius and fonts from the host page's zay-ui tokens, light or dark as the host decides.
+
 ## 0.1.0-alpha.3
 
 - A closed panel (production without the ZAY_* settings) answers 404 on every endpoint instead of 503; the reason is logged once on the server. New `isPanelOpen(config)` in `@czayelements/zaystatic/next` for the panel page.
