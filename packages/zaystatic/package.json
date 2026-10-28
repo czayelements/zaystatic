@@ -1,6 +1,6 @@
 {
   "name": "@czayelements/zaystatic",
-  "version": "0.1.0-alpha.4",
+  "version": "0.1.0-alpha.5",
   "description": "Git-based content panel for Next.js: schema-driven forms, per-locale files, drag-and-drop lists, image uploads (S3-compatible or repo), commits straight to your repository.",
   "keywords": [
     "cms",

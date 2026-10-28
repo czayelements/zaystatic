@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.0-alpha.5
+
+- Fix: buttons that are links (`<a class="zs-btn zs-btn-primary">`, such as "New") and buttons inside the panel took the page's ink colour for their text, so a primary button showed black on black. The panel's element resets now have zero specificity.
+
 ## 0.1.0-alpha.4
 
 - The panel's default look is now the zinc and ink palette of zay-ui (DM Sans, 14px corners, black primary action) instead of the sage-green one.

@@ -57,6 +57,37 @@ importers:
         specifier: ^5
         version: 5.9.3
 
+  examples/showcase:
+    dependencies:
+      '@czayelements/zay-ui':
+        specifier: 0.1.0-alpha.3
+        version: 0.1.0-alpha.3(@types/react@19.3.0)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@czayelements/zaystatic':
+        specifier: workspace:*
+        version: link:../../packages/zaystatic
+      next:
+        specifier: 16.4.3
+        version: 16.4.3(@types/node@20.19.43)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      react:
+        specifier: 19.2.3
+        version: 19.2.3
+      react-dom:
+        specifier: 19.2.3
+        version: 19.2.3(react@19.2.3)
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.43
+      '@types/react':
+        specifier: ^19
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.3.0(@types/react@19.3.0)
+      typescript:
+        specifier: ^5
+        version: 5.9.3
+
   packages/zaystatic:
     dependencies:
       '@dnd-kit/core':

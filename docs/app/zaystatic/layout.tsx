@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import "@czayelements/zay-ui/styles.css";
+import "@czayelements/zay-ui/tokens.css";
 import "@czayelements/zaystatic/styles.css";
 
 /* zay-ui themes with a `dark` class; follow the system setting. */

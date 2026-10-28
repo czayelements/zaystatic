@@ -1,0 +1,24 @@
+{
+  "name": "zaystatic-showcase",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A small example site for zaystatic: a translated home page drawn with the block builder. The docs screenshots are taken from it.",
+  "scripts": {
+    "dev": "next dev --port 3300",
+    "build": "next build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@czayelements/zay-ui": "0.1.0-alpha.3",
+    "@czayelements/zaystatic": "workspace:*",
+    "next": "16.4.3",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  }
+}

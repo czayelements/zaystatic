@@ -64,11 +64,11 @@
 .zs-root *::after {
   box-sizing: border-box;
 }
-.zs-root a {
+:where(.zs-root a) {
   color: inherit;
   text-decoration: none;
 }
-.zs-root button {
+:where(.zs-root button) {
   font: inherit;
   color: inherit;
   cursor: pointer;
@@ -85,8 +85,8 @@
 .zs-root ul {
   list-style: none;
 }
-.zs-root code,
-.zs-root kbd {
+:where(.zs-root code),
+:where(.zs-root kbd) {
   font-family: var(--zs-mono);
 }
 

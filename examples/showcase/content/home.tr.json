@@ -1,0 +1,28 @@
+{
+  "sections": [
+    {
+      "_type": "hero",
+      "title": "Kodda yazılan siteler, panelden yönetilen içerik",
+      "body": "Sayfayı bloklardan kur: sürükle, bırak, düzenle.",
+      "cta": "Başla"
+    },
+    {
+      "_type": "features",
+      "heading": "Neden zaystatic?",
+      "items": [
+        {
+          "title": "Git arka uç",
+          "text": "İçerik deponuzda düz dosya olarak durur; her kayıt bir commit."
+        },
+        {
+          "title": "Çok dilli",
+          "text": "Dil başına bir dosya, seçtiğiniz alanlar çevrilir."
+        },
+        {
+          "title": "Sürükle bırak",
+          "text": "Listeler ve bloklar sürüklenerek sıralanır."
+        }
+      ]
+    }
+  ]
+}

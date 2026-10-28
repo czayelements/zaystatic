@@ -1,0 +1,28 @@
+{
+  "sections": [
+    {
+      "_type": "hero",
+      "title": "Sites written in code, content managed in a panel",
+      "body": "Build the page from blocks: drag, drop, edit.",
+      "cta": "Get started"
+    },
+    {
+      "_type": "features",
+      "heading": "Why zaystatic?",
+      "items": [
+        {
+          "title": "Git-based",
+          "text": "Content lives in your repository as plain files; every save is a commit."
+        },
+        {
+          "title": "Multilingual",
+          "text": "One file per language, and you choose the fields to translate."
+        },
+        {
+          "title": "Drag and drop",
+          "text": "Lists and blocks sort by dragging."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "sections": [
+    {
+      "_type": "hero",
+      "title": "Websites in Code geschrieben, Inhalte im Panel verwaltet",
+      "body": "Baue die Seite aus Blöcken: ziehen, ablegen, bearbeiten.",
+      "cta": "Loslegen"
+    },
+    {
+      "_type": "features",
+      "heading": "Warum zaystatic?",
+      "items": [
+        {
+          "title": "Git-basiert",
+          "text": "Inhalte liegen als einfache Dateien im Repository; jedes Speichern ist ein Commit."
+        },
+        {
+          "title": "Mehrsprachig",
+          "text": "Eine Datei pro Sprache; du wählst die zu übersetzenden Felder."
+        },
+        {
+          "title": "Drag and drop",
+          "text": "Listen und Blöcke werden per Ziehen sortiert."
+        }
+      ]
+    }
+  ]
+}

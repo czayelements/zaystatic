@@ -1,0 +1,28 @@
+{
+  "sections": [
+    {
+      "_type": "hero",
+      "title": "Sitios escritos en código, contenido gestionado en un panel",
+      "body": "Construye la página con bloques: arrastra, suelta, edita.",
+      "cta": "Empezar"
+    },
+    {
+      "_type": "features",
+      "heading": "¿Por qué zaystatic?",
+      "items": [
+        {
+          "title": "Basado en Git",
+          "text": "El contenido vive en tu repositorio como archivos; cada guardado es un commit."
+        },
+        {
+          "title": "Multilingüe",
+          "text": "Un archivo por idioma; tú eliges los campos a traducir."
+        },
+        {
+          "title": "Arrastrar y soltar",
+          "text": "Las listas y los bloques se ordenan arrastrando."
+        }
+      ]
+    }
+  ]
+}
