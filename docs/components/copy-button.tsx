@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
+import { Button } from "@czayelements/zay-ui";
 
 export function CopyButton({ text, label = "Copy" }: { text: string; label?: string }) {
   const [done, setDone] = React.useState(false);
   return (
-    <button
-      type="button"
-      className="copy-btn"
+    <Button
+      variant="secondary"
+      size="sm"
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
@@ -19,6 +20,6 @@ export function CopyButton({ text, label = "Copy" }: { text: string; label?: str
       }}
     >
       {done ? "Copied" : label}
-    </button>
+    </Button>
   );
 }

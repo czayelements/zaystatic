@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Badge, buttonClass } from "@czayelements/zay-ui";
 
 import { CopyButton } from "@/components/copy-button";
 import { withBase } from "@/lib/base";
@@ -45,14 +46,14 @@ export default function Landing() {
   return (
     <main>
       <section className="hero wrap">
-        <span className="pill">Alpha · Under development · Open source</span>
+        <Badge variant="ember">Alpha · Under development · Open source</Badge>
         <h1>{content.title || "A content panel for your repository"}</h1>
         <p>{content.subtitle || site.description}</p>
         <div className="cta-row">
-          <Link href="/docs/quick-start" className="btn btn-primary">
+          <Link href="/docs/quick-start" className={buttonClass({ variant: "primary", size: "lg" })}>
             Get started
           </Link>
-          <Link href="/docs/introduction" className="btn">
+          <Link href="/docs/introduction" className={buttonClass({ variant: "secondary", size: "lg" })}>
             Read the docs
           </Link>
           <span className="install">
@@ -168,10 +169,10 @@ export default function Landing() {
         <h2>Try it on your site</h2>
         <p>Open source. Your content, your repository, your hosting.</p>
         <div className="cta-row">
-          <Link href="/docs/quick-start" className="btn btn-primary">
+          <Link href="/docs/quick-start" className={buttonClass({ variant: "primary", size: "lg" })}>
             Quick start
           </Link>
-          <a href={site.repo} className="btn" target="_blank" rel="noreferrer">
+          <a href={site.repo} className={buttonClass({ variant: "secondary", size: "lg" })} target="_blank" rel="noreferrer">
             Star on GitHub
           </a>
         </div>

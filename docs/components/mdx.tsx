@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { Alert } from "@czayelements/zay-ui";
 
 export function Callout({ type = "note", title, children }: { type?: "note" | "tip" | "warning"; title?: string; children: ReactNode }) {
   const label = title ?? { note: "Note", tip: "Tip", warning: "Heads up" }[type];
+  const tone = { note: "info", tip: "success", warning: "warning" }[type] as "info" | "success" | "warning";
   return (
-    <aside className={`callout callout-${type}`}>
-      <strong>{label}</strong>
-      <div>{children}</div>
-    </aside>
+    <Alert tone={tone} title={label} className="callout">
+      {children}
+    </Alert>
   );
 }
 
