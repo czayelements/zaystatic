@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.4
 
 - The panel's default look is now the zinc and ink palette of zay-ui (DM Sans, 14px corners, black primary action) instead of the sage-green one.
 - New `theme="zay-ui"` prop on `<ZayApp>`: the panel takes its colours, radius and fonts from the host page's zay-ui tokens, light or dark as the host decides.
